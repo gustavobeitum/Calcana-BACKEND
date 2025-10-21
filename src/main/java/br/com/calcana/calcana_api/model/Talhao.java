@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity(name = "Talhao")
-@Table(name = "talhao")
+@Table(name = "talhoes")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,6 +17,8 @@ public class Talhao {
     private Long idTalhao;
 
     private String identificador;
+
+    private Boolean ativo = true;
 
     @ManyToOne
     @JoinColumn(name = "idZona")

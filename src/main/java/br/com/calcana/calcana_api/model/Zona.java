@@ -18,6 +18,8 @@ public class Zona {
 
     private String nome;
 
+    private Boolean ativo = true;
+
     @ManyToOne
     @JoinColumn(name = "idPropriedade")
     private Propriedade propriedade;

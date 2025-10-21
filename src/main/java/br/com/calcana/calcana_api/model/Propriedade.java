@@ -18,6 +18,8 @@ public class Propriedade {
 
     private  String nome;
 
+    private Boolean ativo = true;
+
     @ManyToOne
     @JoinColumn(name = "idFornecedor")
     private Fornecedor fornecedor;

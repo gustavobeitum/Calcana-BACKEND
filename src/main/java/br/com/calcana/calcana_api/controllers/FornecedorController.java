@@ -2,6 +2,7 @@ package br.com.calcana.calcana_api.controllers;
 
 import br.com.calcana.calcana_api.model.Fornecedor;
 import br.com.calcana.calcana_api.repositories.FornecedorRepository;
+import br.com.calcana.calcana_api.services.FornecedorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,11 +13,14 @@ import java.util.List;
 public class FornecedorController {
 
     @Autowired
+    private FornecedorService fornecedorService;
+
+    @Autowired
     private FornecedorRepository repository;
 
     @GetMapping
     public List<Fornecedor> listarTodos() {
-        return repository.findAll();
+        return repository.findAllByAtivoTrue();
     }
 
     @PostMapping
@@ -56,7 +60,9 @@ public class FornecedorController {
                     if (dadosParaAtualizar.getEmail() != null) {
                         fornecedorExistente.setEmail(dadosParaAtualizar.getEmail());
                     }
-
+                    if (dadosParaAtualizar.getAtivo() != null) {
+                        fornecedorExistente.setAtivo(dadosParaAtualizar.getAtivo());
+                    }
                     Fornecedor fornecedorAtualizado = repository.save(fornecedorExistente);
                     return ResponseEntity.ok(fornecedorAtualizado);
                 })
@@ -65,10 +71,7 @@ public class FornecedorController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        if (!repository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        repository.deleteById(id);
+        fornecedorService.desativarFornecedorEmCascata(id);
         return ResponseEntity.noContent().build();
     }
 }

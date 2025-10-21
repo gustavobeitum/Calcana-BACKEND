@@ -5,6 +5,7 @@ import br.com.calcana.calcana_api.model.Talhao;
 import br.com.calcana.calcana_api.model.Zona;
 import br.com.calcana.calcana_api.repositories.TalhaoRepository;
 import br.com.calcana.calcana_api.repositories.ZonaRepository;
+import br.com.calcana.calcana_api.services.TalhaoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,10 +20,15 @@ public class TalhaoController {
     private TalhaoRepository talhaoRepository;
 
     @Autowired
+    private TalhaoService talhaoService;
+
+    @Autowired
     private ZonaRepository zonaRepository;
 
     @GetMapping
-    public List<Talhao> listarTodos() {return talhaoRepository.findAll();}
+    public List<Talhao> listarTodos() {
+        return talhaoRepository.findAllByAtivoTrue();
+    }
 
     @PostMapping
     public ResponseEntity<Talhao> cadastrar(@RequestBody Talhao novoTalhao) {
@@ -57,20 +63,8 @@ public class TalhaoController {
 
     @PatchMapping("/{id}")
     public ResponseEntity<Talhao> atualizarParcialmente(@PathVariable Long id, @RequestBody Talhao dadosParaAtualizar) {
-        return talhaoRepository.findById(id)
-                .map(talhaoExistente -> {
-                    if (dadosParaAtualizar.getIdentificador() != null) {
-                        talhaoExistente.setIdentificador(dadosParaAtualizar.getIdentificador());
-                    }
-                    if (dadosParaAtualizar.getZona() != null && dadosParaAtualizar.getZona().getIdZona() != null) {
-                        Zona zona = zonaRepository.findById(dadosParaAtualizar.getZona().getIdZona())
-                                .orElseThrow(() -> new ResourceNotFoundException("Zona com o ID informado não foi encontrada!"));
-                        talhaoExistente.setZona(zona);
-                    }
-                    Talhao talhaoAtualizado = talhaoRepository.save(talhaoExistente);
-                    return ResponseEntity.ok(talhaoAtualizado);
-                })
-                .orElse(ResponseEntity.notFound().build());
+        Talhao talhaoAtualizado = talhaoService.atualizarParcialmente(id, dadosParaAtualizar);
+        return ResponseEntity.ok(talhaoAtualizado);
     }
 
     @DeleteMapping("/{id}")
@@ -78,7 +72,9 @@ public class TalhaoController {
         if (!talhaoRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
-        talhaoRepository.deleteById(id);
+        Talhao talhao = talhaoRepository.findById(id).get();
+        talhao.setAtivo(false);
+        talhaoRepository.save(talhao);
         return ResponseEntity.noContent().build();
     }
 }
