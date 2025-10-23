@@ -60,8 +60,6 @@ public class Analises {
 
     private BigDecimal atr;
 
-    private BigDecimal adr;
-
     private Boolean statusEnvioEmail = false;
 
     private LocalDateTime dataEnvioEmail;
