@@ -166,6 +166,7 @@ public class AnaliseService {
 
         BigDecimal f = BigDecimal.valueOf(0.08).multiply(pbu)
                 .add(BigDecimal.valueOf(0.876))
+                //pq arredonda para 4 e depois para 2
                 .setScale(4, RoundingMode.HALF_UP);
         analise.setFibra(f.setScale(2, RoundingMode.HALF_UP));
 
@@ -186,9 +187,7 @@ public class AnaliseService {
                 .setScale(2, RoundingMode.HALF_UP);
         analise.setAtr(atr);
 
-        // / (Não havia fórmula na imagem, vamos deixar nulo por enquanto ou usar placeholder)
-        // Se houver uma fórmula específica, adicione aqui.
-        // Exemplo (placeholder):
+        //verificar conta de leitura sacarimetrica corrigida
         if (analise.getLeituraSacarimetrica() != null) {
             BigDecimal leituraCorrigidaPlaceholder = analise.getLeituraSacarimetrica().add(BigDecimal.ONE).setScale(2, RoundingMode.HALF_UP);
             analise.setLeituraSacarimetricaCorrigida(leituraCorrigidaPlaceholder);

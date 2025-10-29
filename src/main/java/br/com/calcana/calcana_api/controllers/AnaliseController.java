@@ -45,5 +45,4 @@ public class AnaliseController {
         return ResponseEntity.noContent().build();
     }
 
-    // Outros endpoints (PUT, PATCH) serão adicionados depois
 }
