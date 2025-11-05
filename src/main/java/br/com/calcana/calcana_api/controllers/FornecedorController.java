@@ -5,6 +5,7 @@ import br.com.calcana.calcana_api.repositories.FornecedorRepository;
 import br.com.calcana.calcana_api.services.FornecedorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -19,17 +20,20 @@ public class FornecedorController {
     private FornecedorRepository repository;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public List<Fornecedor> listarTodos() {
         return repository.findAllByAtivoTrue();
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Fornecedor> cadastrar(@RequestBody Fornecedor novoFornecedor) {
         Fornecedor fornecedorSalvo = repository.save(novoFornecedor);
         return ResponseEntity.status(201).body(fornecedorSalvo);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public ResponseEntity<Fornecedor> buscarPorId(@PathVariable Long id) {
         return repository.findById(id)
                 .map(fornecedorEncontrado -> ResponseEntity.ok(fornecedorEncontrado))
@@ -37,6 +41,7 @@ public class FornecedorController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Fornecedor> atualizar(@PathVariable Long id, @RequestBody Fornecedor dadosParaAtualizar) {
         return repository.findById(id)
                 .map(fornecedorExistente -> {
@@ -51,6 +56,7 @@ public class FornecedorController {
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Fornecedor> atualizarParcialmente(@PathVariable Long id, @RequestBody Fornecedor dadosParaAtualizar) {
         return repository.findById(id)
                 .map(fornecedorExistente -> {
@@ -70,6 +76,7 @@ public class FornecedorController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         fornecedorService.desativarFornecedorEmCascata(id);
         return ResponseEntity.noContent().build();

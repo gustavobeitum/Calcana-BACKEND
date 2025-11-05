@@ -5,12 +5,13 @@ import br.com.calcana.calcana_api.model.Perfil;
 import br.com.calcana.calcana_api.model.Usuario;
 import br.com.calcana.calcana_api.repositories.PerfilRepository;
 import br.com.calcana.calcana_api.repositories.UsuarioRepository;
+import br.com.calcana.calcana_api.services.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Objects;
 
 @RestController
 @RequestMapping("/usuarios")
@@ -22,12 +23,17 @@ public class UsuarioController {
     @Autowired
     private PerfilRepository perfilRepository;
 
+    @Autowired
+    private UsuarioService usuarioService;
+
     @GetMapping
+    @PreAuthorize("hasRole('GESTOR')")
     public List<Usuario> listarTodosAtivos() {
         return usuarioRepository.findAllByAtivoTrue();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('GESTOR')")
     public ResponseEntity<Usuario> buscarPorId(@PathVariable Long id) {
         return usuarioRepository.findById(id)
                 .map(ResponseEntity::ok)
@@ -35,15 +41,14 @@ public class UsuarioController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('GESTOR')")
     public ResponseEntity<Usuario> cadastrar(@RequestBody Usuario novoUsuario) {
-        Perfil perfil = perfilRepository.findById(novoUsuario.getPerfil().getIdPerfil())
-                .orElseThrow(() -> new ResourceNotFoundException("Perfil com o ID informado não foi encontrado!"));
-        novoUsuario.setPerfil(perfil);
-        Usuario usuarioSalvo = usuarioRepository.save(novoUsuario);
+        Usuario usuarioSalvo = usuarioService.cadastrar(novoUsuario);
         return ResponseEntity.status(201).body(usuarioSalvo);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('GESTOR')")
     public ResponseEntity<Usuario> atualizar(@PathVariable Long id, @RequestBody Usuario dadosParaAtualizar) {
         Perfil perfil = perfilRepository.findById(dadosParaAtualizar.getPerfil().getIdPerfil())
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil com o ID informado não foi encontrado!"));
@@ -60,6 +65,7 @@ public class UsuarioController {
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('GESTOR')")
     public ResponseEntity<Usuario> atualizarParcialmente(@PathVariable Long id, @RequestBody Usuario dadosParaAtualizar) {
         return usuarioRepository.findById(id)
                 .map(usuarioExistente -> {
@@ -86,6 +92,7 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('GESTOR')")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         if (!usuarioRepository.existsById(id)) {
             return ResponseEntity.notFound().build();

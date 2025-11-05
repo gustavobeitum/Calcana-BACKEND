@@ -8,6 +8,7 @@ import br.com.calcana.calcana_api.repositories.ZonaRepository;
 import br.com.calcana.calcana_api.services.ZonaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,11 +27,13 @@ public class ZonaController {
     private ZonaService zonaService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public List<Zona> listarTodas(){
         return zonaRepository.findAllByAtivoTrue();
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Zona> cadastrar(@RequestBody Zona novaZona) {
         Propriedade propriedade = propriedadeRepository.findById(novaZona.getPropriedade().getIdPropriedade())
                 .orElseThrow(() -> new ResourceNotFoundException("Propriedade com o ID informado não foi encontrado!"));
@@ -41,6 +44,7 @@ public class ZonaController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public ResponseEntity<Zona> buscarPorId(@PathVariable Long id) {
         return zonaRepository.findById(id)
                 .map(zonaEncontrada -> ResponseEntity.ok(zonaEncontrada))
@@ -48,6 +52,7 @@ public class ZonaController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Zona> atualizar(@PathVariable Long id, @RequestBody Zona dadosParaAtualizar) {
         return zonaRepository.findById(id)
                 .map(zonaExistente -> {
@@ -65,12 +70,14 @@ public class ZonaController {
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Zona> atualizarParcialmente(@PathVariable Long id, @RequestBody Zona dadosParaAtualizar) {
         Zona zonaAtualizada = zonaService.atualizarParcialmente(id, dadosParaAtualizar);
         return ResponseEntity.ok(zonaAtualizada);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         zonaService.desativarZonaEmCascata(id);
         return ResponseEntity.noContent().build();

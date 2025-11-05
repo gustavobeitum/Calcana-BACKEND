@@ -8,6 +8,7 @@ import br.com.calcana.calcana_api.repositories.ZonaRepository;
 import br.com.calcana.calcana_api.services.TalhaoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,11 +27,13 @@ public class TalhaoController {
     private ZonaRepository zonaRepository;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public List<Talhao> listarTodos() {
         return talhaoRepository.findAllByAtivoTrue();
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Talhao> cadastrar(@RequestBody Talhao novoTalhao) {
         Zona zona = zonaRepository.findById(novoTalhao.getZona().getIdZona())
                 .orElseThrow(() -> new ResourceNotFoundException("Zona com o ID informado não foi encontrada!"));
@@ -40,6 +43,7 @@ public class TalhaoController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public ResponseEntity<Talhao> buscarPorId(@PathVariable Long id) {
         return talhaoRepository.findById(id)
                 .map(ResponseEntity::ok)
@@ -47,6 +51,7 @@ public class TalhaoController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Talhao> atualizar(@PathVariable Long id, @RequestBody Talhao dadosParaAtualizar) {
         Zona zona = zonaRepository.findById(dadosParaAtualizar.getZona().getIdZona())
                 .orElseThrow(() -> new ResourceNotFoundException("Zona com o ID informado não foi encontrada!"));
@@ -62,12 +67,14 @@ public class TalhaoController {
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Talhao> atualizarParcialmente(@PathVariable Long id, @RequestBody Talhao dadosParaAtualizar) {
         Talhao talhaoAtualizado = talhaoService.atualizarParcialmente(id, dadosParaAtualizar);
         return ResponseEntity.ok(talhaoAtualizado);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         if (!talhaoRepository.existsById(id)) {
             return ResponseEntity.notFound().build();

@@ -4,6 +4,7 @@ import br.com.calcana.calcana_api.model.Variedade;
 import br.com.calcana.calcana_api.repositories.VariedadeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,15 +17,18 @@ public class VariedadeController {
     private VariedadeRepository repository;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public List<Variedade> listarTodas() {return repository.findAll();}
 
     @PostMapping
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Variedade> cadastrar(@RequestBody Variedade novaVariedade) {
         Variedade variedadeSalva = repository.save(novaVariedade);
         return ResponseEntity.status(201).body(variedadeSalva);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public ResponseEntity<Variedade> buscarPorId(@PathVariable Long id) {
         return repository.findById(id)
                 .map(ResponseEntity::ok)
@@ -32,6 +36,7 @@ public class VariedadeController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Variedade> atualizar(@PathVariable Long id, @RequestBody Variedade dadosParaAtualizar) {
         return repository.findById(id)
                 .map(variedadeExistente -> {
@@ -44,6 +49,7 @@ public class VariedadeController {
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Variedade> atualizarParcialmente(@PathVariable Long id, @RequestBody Variedade dadosParaAtualizar) {
         return repository.findById(id)
                 .map(variedadeExistente -> {
@@ -60,6 +66,7 @@ public class VariedadeController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         if (!repository.existsById(id)) {
             return ResponseEntity.notFound().build();

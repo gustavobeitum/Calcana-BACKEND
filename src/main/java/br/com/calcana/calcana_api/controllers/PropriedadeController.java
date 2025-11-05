@@ -10,6 +10,7 @@ import br.com.calcana.calcana_api.repositories.FornecedorRepository;
 import br.com.calcana.calcana_api.repositories.PropriedadeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,11 +32,13 @@ public class PropriedadeController {
     private CidadeRepository cidadeRepository;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public List<Propriedade> listarTodas() {
         return propriedadeRepository.findAllByAtivoTrue();
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Propriedade> cadastrar(@RequestBody Propriedade novaPropriedade) {
         Fornecedor fornecedor = fornecedorRepository.findById(novaPropriedade.getFornecedor().getIdFornecedor())
                 .orElseThrow(() -> new ResourceNotFoundException("Fornecedor com o ID informado não foi encontrado!"));
@@ -51,6 +54,7 @@ public class PropriedadeController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public ResponseEntity<Propriedade> buscarPorId(@PathVariable Long id) {
         return propriedadeRepository.findById(id)
                 .map(propriedadeEncontrado -> ResponseEntity.ok(propriedadeEncontrado))
@@ -58,6 +62,7 @@ public class PropriedadeController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Propriedade> atualizar(@PathVariable Long id, @RequestBody Propriedade dadosParaAtualizar) {
         return propriedadeRepository.findById(id)
                 .map(propriedadeExistente -> {
@@ -80,12 +85,14 @@ public class PropriedadeController {
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Propriedade> atualizarParcialmente(@PathVariable Long id, @RequestBody Propriedade dadosParaAtualizar) {
         Propriedade propriedadeAtualizada = propriedadeService.atualizarParcialmente(id, dadosParaAtualizar);
         return ResponseEntity.ok(propriedadeAtualizada);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         propriedadeService.desativarPropriedadeEmCascata(id);
         return ResponseEntity.noContent().build();
