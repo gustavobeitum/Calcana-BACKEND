@@ -61,6 +61,12 @@ public class PropriedadeController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/por-fornecedor/{fornecedorId}")
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
+    public List<Propriedade> buscarPorFornecedor(@PathVariable Long fornecedorId) {
+        return propriedadeRepository.findByFornecedorIdFornecedorAndAtivoTrue(fornecedorId);
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Propriedade> atualizar(@PathVariable Long id, @RequestBody Propriedade dadosParaAtualizar) {
