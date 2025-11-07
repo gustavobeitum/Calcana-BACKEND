@@ -4,8 +4,6 @@ import br.com.calcana.calcana_api.exceptions.ResourceNotFoundException;
 import br.com.calcana.calcana_api.model.Propriedade;
 import br.com.calcana.calcana_api.model.Cidade;
 import br.com.calcana.calcana_api.model.Fornecedor;
-import br.com.calcana.calcana_api.model.Talhao;
-import br.com.calcana.calcana_api.model.Zona;
 import br.com.calcana.calcana_api.repositories.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,33 +18,15 @@ public class PropriedadeService {
     private PropriedadeRepository propriedadeRepository;
 
     @Autowired
-    private ZonaRepository zonaRepository;
-
-    @Autowired
-    private TalhaoRepository talhaoRepository;
-
-    @Autowired
     private FornecedorRepository fornecedorRepository;
 
     @Autowired
     private CidadeRepository cidadeRepository;
 
     @Transactional
-    public void desativarPropriedadeEmCascata(Long id) {
+    public void desativarPropriedade(Long id) {
         Propriedade propriedade = propriedadeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Propriedade não encontrada!"));
-
-        List<Zona> zonasParaDesativar = zonaRepository.findByPropriedadeIdPropriedadeAndAtivoTrue(id);
-
-        for (Zona zona : zonasParaDesativar) {
-            List<Talhao> talhoesParaDesativar = talhaoRepository.findByZonaIdZonaAndAtivoTrue(zona.getIdZona());
-            for (Talhao talhao : talhoesParaDesativar) {
-                talhao.setAtivo(false);
-                talhaoRepository.save(talhao);
-            }
-            zona.setAtivo(false);
-            zonaRepository.save(zona);
-        }
+                .orElseThrow(() -> new ResourceNotFoundException("Propriedade com ID " + id + " não encontrada!"));
 
         propriedade.setAtivo(false);
         propriedadeRepository.save(propriedade);

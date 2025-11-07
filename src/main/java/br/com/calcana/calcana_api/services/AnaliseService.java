@@ -14,15 +14,23 @@ import java.math.RoundingMode;
 public class AnaliseService {
 
     @Autowired private AnaliseRepository analiseRepository;
-    @Autowired private TalhaoRepository talhaoRepository;
-    @Autowired private VariedadeRepository variedadeRepository;
-    @Autowired private CorteRepository corteRepository;
+    @Autowired private PropriedadeRepository propriedadeRepository;
     @Autowired private UsuarioRepository usuarioRepository;
 
     @Transactional
     public Analises calcularEsalvarAnalise(Analises novaAnalise) {
-        validarEPreencherRelacionamentos(novaAnalise);
+        Propriedade propriedade = propriedadeRepository.findById(novaAnalise.getPropriedade().getIdPropriedade())
+                .filter(Propriedade::getAtivo)
+                .orElseThrow(() -> new ResourceNotFoundException("Propriedade ativa com o ID informado não foi encontrada!"));
+
+        Usuario usuario = usuarioRepository.findById(novaAnalise.getUsuarioLancamento().getIdUsuario())
+                .filter(Usuario::getAtivo)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário ativo com o ID informado não foi encontrado!"));
+
+        novaAnalise.setPropriedade(propriedade);
+        novaAnalise.setUsuarioLancamento(usuario);
         calcularValoresDerivados(novaAnalise);
+
         return analiseRepository.save(novaAnalise);
     }
 
@@ -34,14 +42,22 @@ public class AnaliseService {
     @Transactional
     public Analises atualizarAnalise(Long id, Analises dadosParaAtualizar) {
         Analises analiseExistente = buscarPorId(id);
-        validarEPreencherRelacionamentos(dadosParaAtualizar);
+
+        Propriedade propriedade = propriedadeRepository.findById(dadosParaAtualizar.getPropriedade().getIdPropriedade())
+                .filter(Propriedade::getAtivo)
+                .orElseThrow(() -> new ResourceNotFoundException("Propriedade ativa não encontrada!"));
+
+        Usuario usuario = usuarioRepository.findById(dadosParaAtualizar.getUsuarioLancamento().getIdUsuario())
+                .filter(Usuario::getAtivo)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário ativo não encontrado!"));
 
         analiseExistente.setNumeroAmostra(dadosParaAtualizar.getNumeroAmostra());
         analiseExistente.setDataAnalise(dadosParaAtualizar.getDataAnalise());
+        analiseExistente.setPropriedade(propriedade);
+        analiseExistente.setUsuarioLancamento(usuario);
+        analiseExistente.setZona(dadosParaAtualizar.getZona());
         analiseExistente.setTalhao(dadosParaAtualizar.getTalhao());
-        analiseExistente.setVariedade(dadosParaAtualizar.getVariedade());
         analiseExistente.setCorte(dadosParaAtualizar.getCorte());
-        analiseExistente.setUsuarioLancamento(dadosParaAtualizar.getUsuarioLancamento());
         analiseExistente.setPbu(dadosParaAtualizar.getPbu());
         analiseExistente.setBrix(dadosParaAtualizar.getBrix());
         analiseExistente.setLeituraSacarimetrica(dadosParaAtualizar.getLeituraSacarimetrica());
@@ -64,6 +80,24 @@ public class AnaliseService {
         if (dadosParaAtualizar.getDataAnalise() != null) {
             analiseExistente.setDataAnalise(dadosParaAtualizar.getDataAnalise());
         }
+
+        if (dadosParaAtualizar.getZona() != null) {
+            analiseExistente.setZona(dadosParaAtualizar.getZona());
+        }
+        if (dadosParaAtualizar.getTalhao() != null) {
+            analiseExistente.setTalhao(dadosParaAtualizar.getTalhao());
+        }
+        if (dadosParaAtualizar.getCorte() != null) {
+            analiseExistente.setCorte(dadosParaAtualizar.getCorte());
+        }
+
+        if (dadosParaAtualizar.getStatusEnvioEmail() != null) {
+            analiseExistente.setStatusEnvioEmail(dadosParaAtualizar.getStatusEnvioEmail());
+        }
+        if (dadosParaAtualizar.getDataEnvioEmail() != null) {
+            analiseExistente.setDataEnvioEmail(dadosParaAtualizar.getDataEnvioEmail());
+        }
+
         if (dadosParaAtualizar.getPbu() != null) {
             analiseExistente.setPbu(dadosParaAtualizar.getPbu());
             recalcular = true;
@@ -76,27 +110,11 @@ public class AnaliseService {
             analiseExistente.setLeituraSacarimetrica(dadosParaAtualizar.getLeituraSacarimetrica());
             recalcular = true;
         }
-        if (dadosParaAtualizar.getStatusEnvioEmail() != null) {
-            analiseExistente.setStatusEnvioEmail(dadosParaAtualizar.getStatusEnvioEmail());
-        }
-        if (dadosParaAtualizar.getDataEnvioEmail() != null) {
-            analiseExistente.setDataEnvioEmail(dadosParaAtualizar.getDataEnvioEmail());
-        }
 
-        if (dadosParaAtualizar.getTalhao() != null && dadosParaAtualizar.getTalhao().getIdTalhao() != null) {
-            Talhao talhao = talhaoRepository.findById(dadosParaAtualizar.getTalhao().getIdTalhao())
-                    .filter(Talhao::getAtivo).orElseThrow(() -> new ResourceNotFoundException("Talhão ativo não encontrado!"));
-            analiseExistente.setTalhao(talhao);
-        }
-        if (dadosParaAtualizar.getVariedade() != null && dadosParaAtualizar.getVariedade().getIdVariedade() != null) {
-            Variedade variedade = variedadeRepository.findById(dadosParaAtualizar.getVariedade().getIdVariedade())
-                    .orElseThrow(() -> new ResourceNotFoundException("Variedade não encontrada!"));
-            analiseExistente.setVariedade(variedade);
-        }
-        if (dadosParaAtualizar.getCorte() != null && dadosParaAtualizar.getCorte().getIdCorte() != null) {
-            Corte corte = corteRepository.findById(dadosParaAtualizar.getCorte().getIdCorte())
-                    .orElseThrow(() -> new ResourceNotFoundException("Corte não encontrado!"));
-            analiseExistente.setCorte(corte);
+        if (dadosParaAtualizar.getPropriedade() != null && dadosParaAtualizar.getPropriedade().getIdPropriedade() != null) {
+            Propriedade propriedade = propriedadeRepository.findById(dadosParaAtualizar.getPropriedade().getIdPropriedade())
+                    .filter(Propriedade::getAtivo).orElseThrow(() -> new ResourceNotFoundException("Propriedade ativa não encontrada!"));
+            analiseExistente.setPropriedade(propriedade);
         }
         if (dadosParaAtualizar.getUsuarioLancamento() != null && dadosParaAtualizar.getUsuarioLancamento().getIdUsuario() != null) {
             Usuario usuario = usuarioRepository.findById(dadosParaAtualizar.getUsuarioLancamento().getIdUsuario())
@@ -104,32 +122,11 @@ public class AnaliseService {
             analiseExistente.setUsuarioLancamento(usuario);
         }
 
-
         if (recalcular) {
             calcularValoresDerivados(analiseExistente);
         }
 
         return analiseRepository.save(analiseExistente);
-    }
-    private void validarEPreencherRelacionamentos(Analises analise) {
-        Talhao talhao = talhaoRepository.findById(analise.getTalhao().getIdTalhao())
-                .filter(Talhao::getAtivo)
-                .orElseThrow(() -> new ResourceNotFoundException("Talhão ativo com o ID informado não foi encontrado!"));
-
-        Variedade variedade = variedadeRepository.findById(analise.getVariedade().getIdVariedade())
-                .orElseThrow(() -> new ResourceNotFoundException("Variedade com o ID informado não foi encontrada!"));
-
-        Corte corte = corteRepository.findById(analise.getCorte().getIdCorte())
-                .orElseThrow(() -> new ResourceNotFoundException("Corte com o ID informado não foi encontrada!"));
-
-        Usuario usuario = usuarioRepository.findById(analise.getUsuarioLancamento().getIdUsuario())
-                .filter(Usuario::getAtivo)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário ativo com o ID informado não foi encontrado!"));
-
-        analise.setTalhao(talhao);
-        analise.setVariedade(variedade);
-        analise.setCorte(corte);
-        analise.setUsuarioLancamento(usuario);
     }
 
     private void calcularValoresDerivados(Analises analise) {

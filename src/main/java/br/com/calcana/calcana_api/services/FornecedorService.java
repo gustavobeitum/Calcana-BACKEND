@@ -27,10 +27,11 @@ public class FornecedorService {
     public void desativarFornecedorEmCascata(Long id) {
         Fornecedor fornecedor = fornecedorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Fornecedor com ID " + id + " não encontrado!"));
+
         List<Propriedade> propriedadesParaDesativar = propriedadeRepository.findByFornecedorIdFornecedorAndAtivoTrue(id);
 
         for (Propriedade propriedade : propriedadesParaDesativar) {
-            propriedadeService.desativarPropriedadeEmCascata(propriedade.getIdPropriedade());
+            propriedadeService.desativarPropriedade(propriedade.getIdPropriedade());
         }
 
         fornecedor.setAtivo(false);

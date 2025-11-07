@@ -3,12 +3,12 @@ package br.com.calcana.calcana_api.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal; // Usaremos BigDecimal para precisão decimal
-import java.time.LocalDate; // Para DataAnalise
-import java.time.LocalDateTime; // Para Data_Envio_Email
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
-@Entity(name = "Analise") // Nome da entidade
-@Table(name = "analises") // Nome da tabela no banco
+@Entity(name = "Analise")
+@Table(name = "analises")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,20 +25,18 @@ public class Analises {
     private LocalDate dataAnalise;
 
     @ManyToOne
-    @JoinColumn(name = "idTalhao")
-    private Talhao talhao;
-
-    @ManyToOne
-    @JoinColumn(name = "idVariedade")
-    private Variedade variedade;
-
-    @ManyToOne
-    @JoinColumn(name = "idCorte")
-    private Corte corte;
+    @JoinColumn(name = "idPropriedade")
+    private Propriedade propriedade;
 
     @ManyToOne
     @JoinColumn(name = "idUsuarioLancamento")
     private Usuario usuarioLancamento;
+
+    private String zona;
+
+    private String talhao;
+
+    private Integer corte;
 
     private BigDecimal pbu;
 

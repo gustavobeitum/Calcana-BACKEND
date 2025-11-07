@@ -31,6 +31,4 @@ public class UsuarioService {
 
         return usuarioRepository.save(novoUsuario);
     }
-
-    //futuramente, os métodos de atualizar, deletar, etc. virão para cá
 }

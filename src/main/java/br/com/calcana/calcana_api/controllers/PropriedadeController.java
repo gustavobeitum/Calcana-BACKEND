@@ -94,7 +94,7 @@ public class PropriedadeController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        propriedadeService.desativarPropriedadeEmCascata(id);
+        propriedadeService.desativarPropriedade(id);
         return ResponseEntity.noContent().build();
     }
 }
