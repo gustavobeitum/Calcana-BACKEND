@@ -6,6 +6,10 @@ import br.com.calcana.calcana_api.repositories.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.data.jpa.domain.Specification;
+import br.com.calcana.calcana_api.repositories.specifications.AnaliseSpecification;
+import java.time.LocalDate;
+import java.util.List;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -63,6 +67,7 @@ public class AnaliseService {
         analiseExistente.setLeituraSacarimetrica(dadosParaAtualizar.getLeituraSacarimetrica());
         analiseExistente.setStatusEnvioEmail(dadosParaAtualizar.getStatusEnvioEmail());
         analiseExistente.setDataEnvioEmail(dadosParaAtualizar.getDataEnvioEmail());
+        analiseExistente.setObservacoes(dadosParaAtualizar.getObservacoes());
 
         calcularValoresDerivados(analiseExistente);
 
@@ -77,6 +82,7 @@ public class AnaliseService {
         if (dadosParaAtualizar.getNumeroAmostra() != null) {
             analiseExistente.setNumeroAmostra(dadosParaAtualizar.getNumeroAmostra());
         }
+
         if (dadosParaAtualizar.getDataAnalise() != null) {
             analiseExistente.setDataAnalise(dadosParaAtualizar.getDataAnalise());
         }
@@ -84,9 +90,11 @@ public class AnaliseService {
         if (dadosParaAtualizar.getZona() != null) {
             analiseExistente.setZona(dadosParaAtualizar.getZona());
         }
+
         if (dadosParaAtualizar.getTalhao() != null) {
             analiseExistente.setTalhao(dadosParaAtualizar.getTalhao());
         }
+
         if (dadosParaAtualizar.getCorte() != null) {
             analiseExistente.setCorte(dadosParaAtualizar.getCorte());
         }
@@ -94,18 +102,25 @@ public class AnaliseService {
         if (dadosParaAtualizar.getStatusEnvioEmail() != null) {
             analiseExistente.setStatusEnvioEmail(dadosParaAtualizar.getStatusEnvioEmail());
         }
+
         if (dadosParaAtualizar.getDataEnvioEmail() != null) {
             analiseExistente.setDataEnvioEmail(dadosParaAtualizar.getDataEnvioEmail());
+        }
+
+        if (dadosParaAtualizar.getObservacoes() != null) {
+            analiseExistente.setObservacoes(dadosParaAtualizar.getObservacoes());
         }
 
         if (dadosParaAtualizar.getPbu() != null) {
             analiseExistente.setPbu(dadosParaAtualizar.getPbu());
             recalcular = true;
         }
+
         if (dadosParaAtualizar.getBrix() != null) {
             analiseExistente.setBrix(dadosParaAtualizar.getBrix());
             recalcular = true;
         }
+
         if (dadosParaAtualizar.getLeituraSacarimetrica() != null) {
             analiseExistente.setLeituraSacarimetrica(dadosParaAtualizar.getLeituraSacarimetrica());
             recalcular = true;
@@ -116,6 +131,7 @@ public class AnaliseService {
                     .filter(Propriedade::getAtivo).orElseThrow(() -> new ResourceNotFoundException("Propriedade ativa não encontrada!"));
             analiseExistente.setPropriedade(propriedade);
         }
+
         if (dadosParaAtualizar.getUsuarioLancamento() != null && dadosParaAtualizar.getUsuarioLancamento().getIdUsuario() != null) {
             Usuario usuario = usuarioRepository.findById(dadosParaAtualizar.getUsuarioLancamento().getIdUsuario())
                     .filter(Usuario::getAtivo).orElseThrow(() -> new ResourceNotFoundException("Usuário ativo não encontrado!"));
@@ -127,6 +143,28 @@ public class AnaliseService {
         }
 
         return analiseRepository.save(analiseExistente);
+    }
+
+    public List<Analises> listarTodasFiltradas(Long fornecedorId, Long propriedadeId, String talhao, LocalDate dataInicio, LocalDate dataFim) {
+        Specification<Analises> spec = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
+
+        if (fornecedorId != null) {
+            spec = spec.and(AnaliseSpecification.comFornecedorId(fornecedorId));
+        }
+        if (propriedadeId != null) {
+            spec = spec.and(AnaliseSpecification.comPropriedadeId(propriedadeId));
+        }
+        if (talhao != null && !talhao.isEmpty()) {
+            spec = spec.and(AnaliseSpecification.comTalhao(talhao));
+        }
+        if (dataInicio != null) {
+            spec = spec.and(AnaliseSpecification.comDataInicio(dataInicio));
+        }
+        if (dataFim != null) {
+            spec = spec.and(AnaliseSpecification.comDataFim(dataFim));
+        }
+
+        return analiseRepository.findAll(spec);
     }
 
     private void calcularValoresDerivados(Analises analise) {

@@ -8,4 +8,7 @@ import java.util.List;
 public interface PropriedadeRepository extends JpaRepository<Propriedade, Long> {
     List<Propriedade> findAllByAtivoTrue();
     List<Propriedade> findByFornecedorIdFornecedorAndAtivoTrue(Long idFornecedor);
+
+    long countByAtivoTrue();
+    boolean existsByCidadeIdCidade(Long idCidade);
 }

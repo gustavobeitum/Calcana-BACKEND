@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import br.com.calcana.calcana_api.exceptions.ResourceNotFoundException;
+import br.com.calcana.calcana_api.repositories.PropriedadeRepository;
 
 @RestController
 @RequestMapping("/cidades")
@@ -15,6 +17,9 @@ public class CidadeController {
 
     @Autowired
     private CidadeRepository repository;
+
+    @Autowired
+    private PropriedadeRepository propriedadeRepository;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
@@ -74,6 +79,13 @@ public class CidadeController {
         if(!repository.existsById(id)){
             return ResponseEntity.notFound().build();
         }
+
+        boolean cidadeEmUso = propriedadeRepository.existsByCidadeIdCidade(id);
+
+        if (cidadeEmUso) {
+            throw new ResourceNotFoundException("Não é possível excluir: A cidade está sendo usada por uma ou mais propriedades.");
+        }
+
         repository.deleteById(id);
         return ResponseEntity.noContent().build();
     }

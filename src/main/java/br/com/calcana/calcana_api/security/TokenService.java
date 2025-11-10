@@ -25,6 +25,9 @@ public class TokenService {
                     .withIssuer("Calcana API")
                     .withSubject(usuario.getEmail())
                     .withExpiresAt(getExpirationDate())
+                    .withClaim("name", usuario.getNome())
+                    .withClaim("id", usuario.getIdUsuario())
+                    .withClaim("role", usuario.getPerfil().getDescricao())
                     .sign(algorithm);
             return token;
         } catch (JWTCreationException exception) {
@@ -36,16 +39,12 @@ public class TokenService {
         return LocalDateTime.now().plusHours(2).toInstant(ZoneOffset.of("-03:00"));
     }
 
-    public String validarTokenErecuperarSubject(String tokenJWT) {
-        try {
-            Algorithm algorithm = Algorithm.HMAC256(secret);
-            return JWT.require(algorithm)
-                    .withIssuer("Calcana API")
-                    .build()
-                    .verify(tokenJWT)
-                    .getSubject();
-        } catch (JWTVerificationException exception) {
-            return "";
-        }
+    public String validarTokenErecuperarSubject(String tokenJWT) throws JWTVerificationException {
+        Algorithm algorithm = Algorithm.HMAC256(secret);
+        return JWT.require(algorithm)
+                .withIssuer("Calcana API")
+                .build()
+                .verify(tokenJWT)
+                .getSubject();
     }
 }

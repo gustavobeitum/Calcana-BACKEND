@@ -61,4 +61,6 @@ public class Analises {
     private Boolean statusEnvioEmail = false;
 
     private LocalDateTime dataEnvioEmail;
+
+    private String observacoes;
 }

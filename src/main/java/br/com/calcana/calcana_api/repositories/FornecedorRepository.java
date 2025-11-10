@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface FornecedorRepository extends JpaRepository<Fornecedor, Long> {
     List<Fornecedor> findAllByAtivoTrue();
+
+    long countByAtivoTrue();
 }

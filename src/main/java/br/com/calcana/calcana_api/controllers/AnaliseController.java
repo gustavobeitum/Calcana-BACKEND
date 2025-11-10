@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 
 import java.util.List;
 
@@ -22,8 +24,14 @@ public class AnaliseController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
-    public List<Analises> listarTodas() {
-        return analiseRepository.findAll();
+    public List<Analises> listarTodas(
+            @RequestParam(required = false) Long fornecedorId,
+            @RequestParam(required = false) Long propriedadeId,
+            @RequestParam(required = false) String talhao,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim
+    ) {
+        return analiseService.listarTodasFiltradas(fornecedorId, propriedadeId, talhao, dataInicio, dataFim);
     }
 
     @PostMapping
