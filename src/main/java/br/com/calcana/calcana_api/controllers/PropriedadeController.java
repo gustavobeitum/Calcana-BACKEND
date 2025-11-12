@@ -1,13 +1,8 @@
 package br.com.calcana.calcana_api.controllers;
 
 import br.com.calcana.calcana_api.services.PropriedadeService;
-import br.com.calcana.calcana_api.exceptions.ResourceNotFoundException;
-import br.com.calcana.calcana_api.model.Cidade;
-import br.com.calcana.calcana_api.model.Fornecedor;
+// REMOVEMOS todas as outras importações de Repositories e Exceptions
 import br.com.calcana.calcana_api.model.Propriedade;
-import br.com.calcana.calcana_api.repositories.CidadeRepository;
-import br.com.calcana.calcana_api.repositories.FornecedorRepository;
-import br.com.calcana.calcana_api.repositories.PropriedadeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,72 +17,39 @@ public class PropriedadeController {
     @Autowired
     private PropriedadeService propriedadeService;
 
-    @Autowired
-    private PropriedadeRepository propriedadeRepository;
-
-    @Autowired
-    private FornecedorRepository fornecedorRepository;
-
-    @Autowired
-    private CidadeRepository cidadeRepository;
-
     @GetMapping
     @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
-    public List<Propriedade> listarTodas() {
-        return propriedadeRepository.findAllByAtivoTrue();
+    public List<Propriedade> listarTodas(
+            @RequestParam(required = false, defaultValue = "ativos") String status
+    ) {
+        return propriedadeService.listarTodos(status);
     }
 
     @PostMapping
     @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Propriedade> cadastrar(@RequestBody Propriedade novaPropriedade) {
-        Fornecedor fornecedor = fornecedorRepository.findById(novaPropriedade.getFornecedor().getIdFornecedor())
-                .orElseThrow(() -> new ResourceNotFoundException("Fornecedor com o ID informado não foi encontrado!"));
-
-        Cidade cidade = cidadeRepository.findById(novaPropriedade.getCidade().getIdCidade())
-                .orElseThrow(() -> new ResourceNotFoundException("Cidade com o ID informado não foi encontrado!"));
-
-        novaPropriedade.setFornecedor(fornecedor);
-        novaPropriedade.setCidade(cidade);
-
-        Propriedade propriedadeSalva = propriedadeRepository.save(novaPropriedade);
+        Propriedade propriedadeSalva = propriedadeService.cadastrar(novaPropriedade);
         return ResponseEntity.status(201).body(propriedadeSalva);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public ResponseEntity<Propriedade> buscarPorId(@PathVariable Long id) {
-        return propriedadeRepository.findById(id)
-                .map(propriedadeEncontrado -> ResponseEntity.ok(propriedadeEncontrado))
-                .orElse(ResponseEntity.notFound().build());
+        Propriedade propriedadeEncontrada = propriedadeService.buscarPorId(id);
+        return ResponseEntity.ok(propriedadeEncontrada);
     }
 
     @GetMapping("/por-fornecedor/{fornecedorId}")
     @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public List<Propriedade> buscarPorFornecedor(@PathVariable Long fornecedorId) {
-        return propriedadeRepository.findByFornecedorIdFornecedorAndAtivoTrue(fornecedorId);
+        return propriedadeService.buscarPorFornecedor(fornecedorId);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Propriedade> atualizar(@PathVariable Long id, @RequestBody Propriedade dadosParaAtualizar) {
-        return propriedadeRepository.findById(id)
-                .map(propriedadeExistente -> {
-
-                    Fornecedor fornecedor = fornecedorRepository.findById(dadosParaAtualizar.getFornecedor().getIdFornecedor())
-                            .orElseThrow(() -> new ResourceNotFoundException("Fornecedor com o ID informado não foi encontrado!"));
-
-                    Cidade cidade = cidadeRepository.findById(dadosParaAtualizar.getCidade().getIdCidade())
-                            .orElseThrow(() -> new ResourceNotFoundException("Cidade com o ID informado não foi encontrado!"));
-
-                    propriedadeExistente.setNome(dadosParaAtualizar.getNome());
-                    propriedadeExistente.setFornecedor(fornecedor);
-                    propriedadeExistente.setCidade(cidade);
-
-                    Propriedade propriedadeAtualizada = propriedadeRepository.save(propriedadeExistente);
-
-                    return ResponseEntity.ok(propriedadeAtualizada);
-                })
-                .orElse(ResponseEntity.notFound().build());
+        Propriedade propriedadeAtualizada = propriedadeService.atualizar(id, dadosParaAtualizar);
+        return ResponseEntity.ok(propriedadeAtualizada);
     }
 
     @PatchMapping("/{id}")

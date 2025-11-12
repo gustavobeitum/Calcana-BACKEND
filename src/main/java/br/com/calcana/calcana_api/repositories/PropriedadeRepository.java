@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface PropriedadeRepository extends JpaRepository<Propriedade, Long> {
     List<Propriedade> findAllByAtivoTrue();
+    List<Propriedade> findAllByAtivoFalse();
     List<Propriedade> findByFornecedorIdFornecedorAndAtivoTrue(Long idFornecedor);
 
     long countByAtivoTrue();

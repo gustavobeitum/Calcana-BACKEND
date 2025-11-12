@@ -1,15 +1,14 @@
 package br.com.calcana.calcana_api.controllers;
 
-import br.com.calcana.calcana_api.exceptions.ResourceNotFoundException;
-import br.com.calcana.calcana_api.model.Perfil;
 import br.com.calcana.calcana_api.model.Usuario;
-import br.com.calcana.calcana_api.repositories.PerfilRepository;
-import br.com.calcana.calcana_api.repositories.UsuarioRepository;
 import br.com.calcana.calcana_api.services.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import br.com.calcana.calcana_api.security.dto.AlterarMinhaSenhaDTO;
+import br.com.calcana.calcana_api.security.dto.ResetarSenhaDTO;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
@@ -18,26 +17,22 @@ import java.util.List;
 public class UsuarioController {
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private PerfilRepository perfilRepository;
-
-    @Autowired
     private UsuarioService usuarioService;
 
     @GetMapping
     @PreAuthorize("hasRole('GESTOR')")
-    public List<Usuario> listarTodosAtivos() {
-        return usuarioRepository.findAllByAtivoTrue();
+    public List<Usuario> listarTodosAtivos(
+            @RequestParam(required = false, defaultValue = "ativos") String status,
+            @RequestParam(required = false, defaultValue = "OPERADOR") String perfil
+    ) {
+        return usuarioService.listarTodos(status, perfil);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('GESTOR')")
     public ResponseEntity<Usuario> buscarPorId(@PathVariable Long id) {
-        return usuarioRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Usuario usuario = usuarioService.buscarPorId(id);
+        return ResponseEntity.ok(usuario);
     }
 
     @PostMapping
@@ -50,59 +45,43 @@ public class UsuarioController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('GESTOR')")
     public ResponseEntity<Usuario> atualizar(@PathVariable Long id, @RequestBody Usuario dadosParaAtualizar) {
-        Perfil perfil = perfilRepository.findById(dadosParaAtualizar.getPerfil().getIdPerfil())
-                .orElseThrow(() -> new ResourceNotFoundException("Perfil com o ID informado não foi encontrado!"));
-
-        return usuarioRepository.findById(id)
-                .map(usuarioExistente -> {
-                    usuarioExistente.setNome(dadosParaAtualizar.getNome());
-                    usuarioExistente.setEmail(dadosParaAtualizar.getEmail());
-                    usuarioExistente.setPerfil(perfil);
-                    Usuario usuarioAtualizado = usuarioRepository.save(usuarioExistente);
-                    return ResponseEntity.ok(usuarioAtualizado);
-                })
-                .orElse(ResponseEntity.notFound().build());
+        Usuario usuarioAtualizado = usuarioService.atualizar(id, dadosParaAtualizar);
+        return ResponseEntity.ok(usuarioAtualizado);
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('GESTOR')")
     public ResponseEntity<Usuario> atualizarParcialmente(@PathVariable Long id, @RequestBody Usuario dadosParaAtualizar) {
-        return usuarioRepository.findById(id)
-                .map(usuarioExistente -> {
-                    if (dadosParaAtualizar.getNome() != null) {
-                        usuarioExistente.setNome(dadosParaAtualizar.getNome());
-                    }
-                    if (dadosParaAtualizar.getEmail() != null) {
-                        usuarioExistente.setEmail(dadosParaAtualizar.getEmail());
-                    }
-                    if (dadosParaAtualizar.getPerfil() != null && dadosParaAtualizar.getPerfil().getIdPerfil() != null) {
-                        Perfil perfil = perfilRepository.findById(dadosParaAtualizar.getPerfil().getIdPerfil())
-                                .orElseThrow(() -> new ResourceNotFoundException("Perfil com o ID informado não foi encontrado!"));
-                        usuarioExistente.setPerfil(perfil);
-                    }
-
-                    if (dadosParaAtualizar.getAtivo() != null) {
-                        usuarioExistente.setAtivo(dadosParaAtualizar.getAtivo());
-                    }
-
-                    Usuario usuarioAtualizado = usuarioRepository.save(usuarioExistente);
-                    return ResponseEntity.ok(usuarioAtualizado);
-                })
-                .orElse(ResponseEntity.notFound().build());
+        Usuario usuarioAtualizado = usuarioService.atualizarParcialmente(id, dadosParaAtualizar);
+        return ResponseEntity.ok(usuarioAtualizado);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('GESTOR')")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        if (!usuarioRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
+        usuarioService.deletar(id);
+        return ResponseEntity.noContent().build();
+    }
 
-        Usuario usuario = usuarioRepository.findById(id).get();
+    @PutMapping("/{id}/resetar-senha")
+    @PreAuthorize("hasRole('GESTOR')")
+    public ResponseEntity<Void> resetarSenha(
+            @PathVariable Long id,
+            @RequestBody ResetarSenhaDTO dto
+    ) {
+        usuarioService.resetarSenha(id, dto.novaSenha());
+        return ResponseEntity.noContent().build();
+    }
 
-        usuario.setAtivo(false);
-        usuarioRepository.save(usuario);
+    @PutMapping("/mudar-minha-senha")
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
+    public ResponseEntity<Void> alterarMinhaSenha(
+            @RequestBody AlterarMinhaSenhaDTO dto,
+            Authentication authentication
+    ) {
+        Usuario usuarioAutenticado = (Usuario) authentication.getPrincipal();
 
+        usuarioService.alterarMinhaSenha(usuarioAutenticado, dto.senhaAtual(), dto.novaSenha());
         return ResponseEntity.noContent().build();
     }
 }

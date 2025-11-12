@@ -23,19 +23,78 @@ public class PropriedadeService {
     @Autowired
     private CidadeRepository cidadeRepository;
 
+    public Propriedade buscarPorId(Long id) {
+        return propriedadeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Propriedade com ID " + id + " não encontrada!"));
+    }
+
+    public List<Propriedade> listarTodos(String status) {
+        if ("inativos".equalsIgnoreCase(status)) {
+            return propriedadeRepository.findAllByAtivoFalse();
+        } else if ("todos".equalsIgnoreCase(status)) {
+            return propriedadeRepository.findAll();
+        } else {
+            return propriedadeRepository.findAllByAtivoTrue();
+        }
+    }
+
+    public List<Propriedade> buscarPorFornecedor(Long fornecedorId) {
+        if (!fornecedorRepository.existsById(fornecedorId)) {
+            throw new ResourceNotFoundException("Fornecedor com ID " + fornecedorId + " não encontrado!");
+        }
+        return propriedadeRepository.findByFornecedorIdFornecedorAndAtivoTrue(fornecedorId);
+    }
+
+    @Transactional
+    public Propriedade cadastrar(Propriedade novaPropriedade) {
+        Fornecedor fornecedor = fornecedorRepository.findById(novaPropriedade.getFornecedor().getIdFornecedor())
+                .orElseThrow(() -> new ResourceNotFoundException("Fornecedor com o ID " + novaPropriedade.getFornecedor().getIdFornecedor() + " não foi encontrado!"));
+
+        if (!fornecedor.getAtivo()) {
+            throw new RuntimeException("Não é possível cadastrar: O Fornecedor '" + fornecedor.getNome() + "' está inativo.");
+        }
+
+        Cidade cidade = cidadeRepository.findById(novaPropriedade.getCidade().getIdCidade())
+                .orElseThrow(() -> new ResourceNotFoundException("Cidade com o ID " + novaPropriedade.getCidade().getIdCidade() + " não foi encontrada!"));
+
+        novaPropriedade.setFornecedor(fornecedor);
+        novaPropriedade.setCidade(cidade);
+        novaPropriedade.setAtivo(true);
+
+        return propriedadeRepository.save(novaPropriedade);
+    }
+
+    @Transactional
+    public Propriedade atualizar(Long id, Propriedade dadosParaAtualizar) {
+        Propriedade propriedadeExistente = buscarPorId(id);
+
+        Fornecedor fornecedor = fornecedorRepository.findById(dadosParaAtualizar.getFornecedor().getIdFornecedor())
+                .orElseThrow(() -> new ResourceNotFoundException("Fornecedor com o ID " + dadosParaAtualizar.getFornecedor().getIdFornecedor() + " não foi encontrado!"));
+
+        if (!fornecedor.getAtivo()) {
+            throw new RuntimeException("Não é possível atualizar: O Fornecedor '" + fornecedor.getNome() + "' está inativo.");
+        }
+
+        Cidade cidade = cidadeRepository.findById(dadosParaAtualizar.getCidade().getIdCidade())
+                .orElseThrow(() -> new ResourceNotFoundException("Cidade com o ID " + dadosParaAtualizar.getCidade().getIdCidade() + " não foi encontrada!"));
+
+        propriedadeExistente.setNome(dadosParaAtualizar.getNome());
+        propriedadeExistente.setFornecedor(fornecedor);
+        propriedadeExistente.setCidade(cidade);
+
+        return propriedadeRepository.save(propriedadeExistente);
+    }
+
     @Transactional
     public void desativarPropriedade(Long id) {
-        Propriedade propriedade = propriedadeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Propriedade com ID " + id + " não encontrada!"));
-
+        Propriedade propriedade = buscarPorId(id);
         propriedade.setAtivo(false);
         propriedadeRepository.save(propriedade);
     }
 
     @Transactional
     public Propriedade atualizarParcialmente(Long id, Propriedade dadosParaAtualizar) {
-        Propriedade propriedadeExistente = propriedadeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Propriedade com ID " + id + " não encontrada!"));
+        Propriedade propriedadeExistente = this.buscarPorId(id);
 
         if (dadosParaAtualizar.getAtivo() != null && dadosParaAtualizar.getAtivo() == true) {
             Fornecedor fornecedorPai = propriedadeExistente.getFornecedor();

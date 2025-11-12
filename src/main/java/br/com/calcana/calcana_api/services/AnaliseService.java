@@ -167,6 +167,18 @@ public class AnaliseService {
         return analiseRepository.findAll(spec);
     }
 
+    @Transactional
+    public void deletar(Long id) {
+        Analises analiseParaDeletar = buscarPorId(id);
+
+        // Poderíamos verificar aqui se a análise já foi enviada por e-mail e impedir a exclusão, por exemplo.
+        // if (analiseParaDeletar.getStatusEnvioEmail()) {
+        //    throw new RuntimeException("Não é possível excluir uma análise que já foi enviada.");
+        // }
+
+        analiseRepository.delete(analiseParaDeletar);
+    }
+
     private void calcularValoresDerivados(Analises analise) {
         BigDecimal brix = analise.getBrix();
         BigDecimal leituraSac = analise.getLeituraSacarimetrica();
@@ -176,6 +188,7 @@ public class AnaliseService {
             analise.setPolCaldo(null);
             analise.setPureza(null);
             analise.setArCana(null);
+            analise.setArCaldo(null);
             analise.setFibra(null);
             analise.setPolCana(null);
             analise.setArCana(null);
@@ -184,50 +197,81 @@ public class AnaliseService {
             return;
         }
 
-        BigDecimal s = BigDecimal.valueOf(1.00621).multiply(leituraSac)
-                .add(BigDecimal.valueOf(0.05117));
-        BigDecimal tempS = BigDecimal.valueOf(0.2605)
-                .subtract(BigDecimal.valueOf(0.0009882).multiply(brix));
-        s = s.multiply(tempS).setScale(2, RoundingMode.HALF_UP);
-        analise.setPolCaldo(s);
+        int precisaoIntermediaria = 10;
+        RoundingMode arredondamento = RoundingMode.HALF_UP;
 
-        BigDecimal q = BigDecimal.valueOf(100).multiply(s)
-                .divide(brix, 2, RoundingMode.HALF_UP);
-        analise.setPureza(q);
+        // S = (1,00621 * L.Sac + 0,05117) * (0,2605 - 0,0009882 * B)
+        BigDecimal parte1 = (new BigDecimal("1.00621")).multiply(leituraSac)
+                .add(new BigDecimal("0.05117"));
+        BigDecimal parte2 = (new BigDecimal("0.2605"))
+                .subtract((new BigDecimal("0.0009882")).multiply(brix));
 
-        BigDecimal ar = BigDecimal.valueOf(3.641)
-                .subtract(BigDecimal.valueOf(0.0343).multiply(q))
-                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal s_polCaldo = parte1.multiply(parte2);
 
-        BigDecimal f = BigDecimal.valueOf(0.08).multiply(pbu)
-                .add(BigDecimal.valueOf(0.876))
-                //pq arredonda para 4 e depois para 2
-                .setScale(4, RoundingMode.HALF_UP);
-        analise.setFibra(f.setScale(2, RoundingMode.HALF_UP));
+        // Salvar S (Pol do Caldo) - Precisão 2
+        analise.setPolCaldo(s_polCaldo.setScale(2, arredondamento));
 
-        BigDecimal c = BigDecimal.valueOf(1.0313)
-                .subtract(BigDecimal.valueOf(0.00575).multiply(f))
-                .setScale(4, RoundingMode.HALF_UP);
 
-        BigDecimal pc = BigDecimal.ONE.subtract(BigDecimal.valueOf(0.01).multiply(f));
-        pc = s.multiply(pc).multiply(c).setScale(2, RoundingMode.HALF_UP);
-        analise.setPolCana(pc);
+        // Q = 100 * S / B
+        BigDecimal q_pureza = (new BigDecimal("100")).multiply(s_polCaldo)
+                .divide(brix, precisaoIntermediaria, arredondamento);
 
-        BigDecimal arc = BigDecimal.ONE.subtract(BigDecimal.valueOf(0.01).multiply(f));
-        arc = ar.multiply(arc).multiply(c).setScale(2, RoundingMode.HALF_UP);
-        analise.setArCana(arc);
+        // Salvar Q (Pureza) - Precisão 2
+        analise.setPureza(q_pureza.setScale(2, arredondamento));
 
-        BigDecimal atr = BigDecimal.valueOf(9.6316).multiply(pc)
-                .add(BigDecimal.valueOf(9.15).multiply(arc))
-                .setScale(2, RoundingMode.HALF_UP);
-        analise.setAtr(atr);
 
-        //verificar conta de leitura sacarimetrica corrigida
-        if (analise.getLeituraSacarimetrica() != null) {
-            BigDecimal leituraCorrigidaPlaceholder = analise.getLeituraSacarimetrica().add(BigDecimal.ONE).setScale(2, RoundingMode.HALF_UP);
-            analise.setLeituraSacarimetricaCorrigida(leituraCorrigidaPlaceholder);
-        } else {
-            analise.setLeituraSacarimetricaCorrigida(null);
-        }
+        // AR = 3,641 - 0,0343 * Q (Açúcares Redutores do Caldo)
+        BigDecimal ar_acucaresRedutoresCaldo = (new BigDecimal("3.641"))
+                .subtract((new BigDecimal("0.0343")).multiply(q_pureza));
+
+        // Salvar AR (Ar Caldo) - Precisão 2
+        analise.setArCaldo(ar_acucaresRedutoresCaldo.setScale(2, arredondamento));
+
+
+        // F = 0,08 * PBU + 0,876
+        BigDecimal f_fibra = (new BigDecimal("0.08")).multiply(pbu)
+                .add(new BigDecimal("0.876"));
+
+        // Salvar F (Fibra) - Precisão 2
+        analise.setFibra(f_fibra.setScale(2, arredondamento));
+
+
+        // C = 1,0313 - 0,00575 * F
+        BigDecimal c_coeficiente = (new BigDecimal("1.0313"))
+                .subtract((new BigDecimal("0.00575")).multiply(f_fibra));
+
+        // Precisão 4
+        c_coeficiente = c_coeficiente.setScale(4, arredondamento);
+
+
+        // PC = S * (1 - 0,01 * F) * C
+        BigDecimal pc_polCana = s_polCaldo.multiply(
+                (BigDecimal.ONE.subtract((new BigDecimal("0.01")).multiply(f_fibra)))
+        ).multiply(c_coeficiente);
+
+        // Salvar PC (Pol da Cana) - Precisão 2
+        analise.setPolCana(pc_polCana.setScale(2, arredondamento));
+
+
+        // ARC = AR * (1 - 0,01 * F) * C
+        BigDecimal arc_arCana = ar_acucaresRedutoresCaldo.multiply(
+                (BigDecimal.ONE.subtract((new BigDecimal("0.01")).multiply(f_fibra)))
+        ).multiply(c_coeficiente);
+
+        // Salvar ARC (AR da Cana) - Precisão 2
+        analise.setArCana(arc_arCana.setScale(2, arredondamento));
+
+
+        // ATR = (9,6316 * PC) + (9,15 * ARC)
+        BigDecimal atr_final = (new BigDecimal("9.6316")).multiply(pc_polCana)
+                .add((new BigDecimal("9.15")).multiply(arc_arCana));
+
+        // Salvar ATR - Precisão 2
+        analise.setAtr(atr_final.setScale(2, arredondamento));
+
+
+        //Leitura Sacarimétrica Corrigida a fórmula para este campo não foi encontrada.
+        // Estamos a definir como null para evitar salvar o dado placeholder.
+        analise.setLeituraSacarimetricaCorrigida(null);
     }
 }

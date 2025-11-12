@@ -56,6 +56,8 @@ public class Analises {
 
     private BigDecimal arCana;
 
+    private BigDecimal arCaldo;
+
     private BigDecimal atr;
 
     private Boolean statusEnvioEmail = false;
