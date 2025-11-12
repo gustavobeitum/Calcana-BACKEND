@@ -16,6 +16,14 @@ import br.com.calcana.calcana_api.model.Analises;
 import br.com.calcana.calcana_api.services.AnaliseService;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.format.annotation.DateTimeFormat;
+
+import org.springframework.web.bind.annotation.PostMapping;
+import java.time.format.DateTimeFormatter;
+import org.springframework.http.HttpStatus;
+import br.com.calcana.calcana_api.model.Fornecedor;
+import br.com.calcana.calcana_api.services.EmailService;
+import org.apache.commons.io.IOUtils;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -31,6 +39,9 @@ public class ReportController {
 
     @Autowired
     private AnaliseService analiseService;
+
+    @Autowired
+    private EmailService emailService;
 
     @GetMapping("/analise/{id}/pdf")
     @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
@@ -91,6 +102,56 @@ public class ReportController {
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         } catch (Exception e) {
+            throw e;
+        }
+    }
+
+
+    @PostMapping("/analise/{id}/enviar")
+    @PreAuthorize("hasRole('OPERADOR')")
+    public ResponseEntity<Void> enviarBoletimPorEmail(@PathVariable("id") Long idAnalise) {
+
+        try {
+            Analises analise = analiseService.buscarPorId(idAnalise);
+            Fornecedor fornecedor = analise.getPropriedade().getFornecedor();
+
+            String emailDestinatario = fornecedor.getEmail();
+            if (emailDestinatario == null || emailDestinatario.isEmpty()) {
+                throw new RuntimeException("Fornecedor não possui e-mail cadastrado.");
+            }
+
+            ByteArrayInputStream pdfStream = reportService.gerarBoletimPdf(idAnalise);
+            byte[] pdfBytes = IOUtils.toByteArray(pdfStream);
+            String nomeArquivo = "boletim_analise_" + idAnalise + ".pdf";
+
+            String assunto = "Boletim de Análise de ATR - Amostra " + analise.getNumeroAmostra();
+            String corpo = String.format(
+                    "Olá, %s!\n\n" +
+                            "Segue em anexo o boletim da análise de ATR referente à amostra nº %d, " +
+                            "realizada em %s na propriedade %s (Talhão: %s).\n\n" +
+                            "Atenciosamente,\nEquipe Calcana (Assocana)",
+                    fornecedor.getNome(),
+                    analise.getNumeroAmostra(),
+                    analise.getDataAnalise().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                    analise.getPropriedade().getNome(),
+                    analise.getTalhao()
+            );
+
+            emailService.enviarEmailComAnexo(
+                    emailDestinatario,
+                    assunto,
+                    corpo,
+                    pdfBytes,
+                    nomeArquivo
+            );
+
+            analiseService.registrarEnvioEmail(idAnalise);
+
+            return ResponseEntity.ok().build();
+
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        } catch (RuntimeException e) {
             throw e;
         }
     }

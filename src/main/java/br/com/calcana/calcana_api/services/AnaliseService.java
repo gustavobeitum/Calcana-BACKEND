@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.domain.Specification;
 import br.com.calcana.calcana_api.repositories.specifications.AnaliseSpecification;
+import java.time.LocalDateTime;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -273,5 +275,15 @@ public class AnaliseService {
         //Leitura Sacarimétrica Corrigida a fórmula para este campo não foi encontrada.
         // Estamos a definir como null para evitar salvar o dado placeholder.
         analise.setLeituraSacarimetricaCorrigida(null);
+    }
+
+    @Transactional
+    public void registrarEnvioEmail(Long idAnalise) {
+        Analises analise = buscarPorId(idAnalise);
+
+        analise.setStatusEnvioEmail(true);
+        analise.setDataEnvioEmail(LocalDateTime.now());
+
+        analiseRepository.save(analise);
     }
 }
