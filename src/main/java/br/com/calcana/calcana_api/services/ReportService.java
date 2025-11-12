@@ -17,10 +17,19 @@ import com.itextpdf.layout.properties.UnitValue;
 import com.itextpdf.kernel.colors.DeviceGray;
 import com.itextpdf.layout.properties.HorizontalAlignment;
 
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
+
+import java.util.List;
+import java.math.BigDecimal;
 
 @Service
 public class ReportService {
@@ -30,6 +39,7 @@ public class ReportService {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+    //PDF
     public ByteArrayInputStream gerarBoletimPdf(Long idAnalise) throws IOException {
 
         Analises analise = analiseService.buscarPorId(idAnalise);
@@ -141,5 +151,103 @@ private Cell criarCelulaCabecalho(String texto) {
                 .setFontSize(10)
                 .setTextAlignment(TextAlignment.LEFT)
                 .setPadding(5);
+    }
+
+    //EXCEL
+    public ByteArrayInputStream gerarRelatorioExcel(List<Analises> analises, String layout) throws IOException {
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+            XSSFSheet sheet = workbook.createSheet("Relatório de Análises");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font font = workbook.createFont();
+            font.setBold(true);
+            headerStyle.setFont(font);
+
+            Row headerRow = sheet.createRow(0);
+
+            String[] colunas;
+            switch (layout.toLowerCase()) {
+                case "nova_america":
+                    colunas = new String[]{"Sequência", "Código", "Zona", "Talhão"};
+                    break;
+                case "agroterenas":
+                    colunas = new String[]{"Sequência", "Zona", "Talhão"};
+                    break;
+                default:
+                    colunas = new String[]{"ID Análise", "Data", "Fornecedor", "Propriedade", "Talhão", "Zona", "Corte", "ATR"};
+                    break;
+            }
+
+            for (int i = 0; i < colunas.length; i++) {
+                org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+                cell.setCellValue(colunas[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            int rowNum = 1;
+            for (Analises analise : analises) {
+                Row row = sheet.createRow(rowNum++);
+                preencherLinhaExcel(row, analise, layout);
+            }
+
+            for (int i = 0; i < colunas.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(baos);
+            return new ByteArrayInputStream(baos.toByteArray());
+
+        } catch (IOException e) {
+            System.err.println("Erro ao gerar arquivo Excel: " + e.getMessage());
+            throw new IOException("Erro ao gerar relatório Excel", e);
+        }
+    }
+
+    private void preencherLinhaExcel(Row row, Analises analise, String layout) {
+
+        switch (layout.toLowerCase()) {
+            case "nova_america":
+                criarCelulaExcel(row, 0, analise.getIdAnalise());
+                criarCelulaExcel(row, 1, analise.getNumeroAmostra());
+                criarCelulaExcel(row, 2, analise.getZona());
+                criarCelulaExcel(row, 3, analise.getTalhao());
+                break;
+
+            case "agroterenas":
+                criarCelulaExcel(row, 0, analise.getIdAnalise());
+                criarCelulaExcel(row, 1, analise.getZona());
+                criarCelulaExcel(row, 2, analise.getTalhao());
+                break;
+
+            default:
+                criarCelulaExcel(row, 0, analise.getIdAnalise());
+                criarCelulaExcel(row, 1, analise.getDataAnalise().format(DATE_FORMATTER));
+                criarCelulaExcel(row, 2, analise.getPropriedade().getFornecedor().getNome());
+                criarCelulaExcel(row, 3, analise.getPropriedade().getNome());
+                criarCelulaExcel(row, 4, analise.getTalhao());
+                criarCelulaExcel(row, 5, analise.getZona());
+                criarCelulaExcel(row, 6, analise.getCorte());
+                criarCelulaExcel(row, 7, analise.getAtr());
+                break;
+        }
+    }
+
+    private void criarCelulaExcel(Row row, int colNum, Object valor) {
+        org.apache.poi.ss.usermodel.Cell cell = row.createCell(colNum);
+        if (valor == null) {
+            cell.setCellValue("-");
+        } else if (valor instanceof String) {
+            cell.setCellValue((String) valor);
+        } else if (valor instanceof Long) {
+            cell.setCellValue((Long) valor);
+        } else if (valor instanceof Integer) {
+            cell.setCellValue((Integer) valor);
+        } else if (valor instanceof BigDecimal) {
+            cell.setCellValue(((BigDecimal) valor).doubleValue());
+        } else {
+            cell.setCellValue(valor.toString());
+        }
     }
 }

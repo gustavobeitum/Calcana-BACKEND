@@ -12,6 +12,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.calcana.calcana_api.model.Analises;
+import br.com.calcana.calcana_api.services.AnaliseService;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
+import java.util.List;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
@@ -21,6 +28,9 @@ public class ReportController {
 
     @Autowired
     private ReportService reportService;
+
+    @Autowired
+    private AnaliseService analiseService;
 
     @GetMapping("/analise/{id}/pdf")
     @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
@@ -40,6 +50,43 @@ public class ReportController {
                     .headers(headers)
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(new InputStreamResource(pdfStream));
+
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+
+    @GetMapping("/analises/excel")
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
+    public ResponseEntity<InputStreamResource> gerarRelatorioExcel(
+            @RequestParam(required = false, defaultValue = "default") String layout,
+
+            @RequestParam(required = false) Long fornecedorId,
+            @RequestParam(required = false) Long propriedadeId,
+            @RequestParam(required = false) String talhao,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim
+    ) {
+        try {
+            List<Analises> analises = analiseService.listarTodasFiltradas(
+                    fornecedorId, propriedadeId, talhao, dataInicio, dataFim
+            );
+
+            ByteArrayInputStream excelStream = reportService.gerarRelatorioExcel(analises, layout);
+
+            HttpHeaders headers = new HttpHeaders();
+            String filename = "relatorio_analises_" + layout + ".xlsx";
+
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename);
+
+            return ResponseEntity
+                    .ok()
+                    .headers(headers)
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(new InputStreamResource(excelStream));
 
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
