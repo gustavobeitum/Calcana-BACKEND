@@ -10,6 +10,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     List<Usuario> findAllByAtivoTrue();
     List<Usuario> findAllByAtivoFalse();
     Optional<Usuario> findByEmail(String email);
+    Optional<Usuario> findByEmailAndIdUsuarioNot(String email, Long idUsuario);
 
     List<Usuario> findByPerfilDescricaoAndAtivoTrue(String descricao);
     List<Usuario> findByPerfilDescricaoAndAtivoFalse(String descricao);

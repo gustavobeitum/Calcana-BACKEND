@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UsuarioService {
@@ -33,6 +34,8 @@ public class UsuarioService {
         if ("GESTOR".equalsIgnoreCase(perfil.getDescricao())) {
             throw new AccessDeniedException("Não é permitido criar usuários com o perfil de GESTOR.");
         }
+
+        validarEmailUsuarioUnico(novoUsuario.getEmail(), null);
 
         novoUsuario.setPerfil(perfil);
 
@@ -76,6 +79,8 @@ public class UsuarioService {
 
         verificarRegraGestor(usuarioExistente);
 
+        validarEmailUsuarioUnico(dadosParaAtualizar.getEmail(), id);
+
         Perfil perfil = perfilRepository.findById(dadosParaAtualizar.getPerfil().getIdPerfil())
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil com o ID informado não foi encontrado!"));
 
@@ -100,6 +105,7 @@ public class UsuarioService {
             usuarioExistente.setNome(dadosParaAtualizar.getNome());
         }
         if (dadosParaAtualizar.getEmail() != null) {
+            validarEmailUsuarioUnico(dadosParaAtualizar.getEmail(), id);
             usuarioExistente.setEmail(dadosParaAtualizar.getEmail());
         }
         if (dadosParaAtualizar.getPerfil() != null && dadosParaAtualizar.getPerfil().getIdPerfil() != null) {
@@ -171,6 +177,20 @@ public class UsuarioService {
 
         if ("GESTOR".equalsIgnoreCase(usuarioAlvo.getPerfil().getDescricao())) {
             throw new AccessDeniedException("Ação não permitida. Gestores não podem ser modificados.");
+        }
+    }
+
+    private void validarEmailUsuarioUnico(String email, Long id) {
+        Optional<Usuario> usuarioExistente;
+
+        if (id == null) {
+            usuarioExistente = usuarioRepository.findByEmail(email);
+        } else {
+            usuarioExistente = usuarioRepository.findByEmailAndIdUsuarioNot(email, id);
+        }
+
+        if (usuarioExistente.isPresent()) {
+            throw new RuntimeException("O e-mail '" + email + "' já está em uso por outro usuário.");
         }
     }
 }

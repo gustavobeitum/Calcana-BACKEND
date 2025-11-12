@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class FornecedorService {
@@ -40,6 +41,9 @@ public class FornecedorService {
 
     @Transactional
     public Fornecedor cadastrar(Fornecedor novoFornecedor) {
+        validarNomeFornecedorUnico(novoFornecedor.getNome(), null);
+        validarEmailFornecedorUnico(novoFornecedor.getEmail(), null);
+
         novoFornecedor.setAtivo(true);
         return fornecedorRepository.save(novoFornecedor);
     }
@@ -47,6 +51,9 @@ public class FornecedorService {
     @Transactional
     public Fornecedor atualizar(Long id, Fornecedor dadosParaAtualizar) {
         Fornecedor fornecedorExistente = buscarPorId(id);
+
+        validarNomeFornecedorUnico(dadosParaAtualizar.getNome(), id);
+        validarEmailFornecedorUnico(dadosParaAtualizar.getEmail(), id);
 
         fornecedorExistente.setNome(dadosParaAtualizar.getNome());
         fornecedorExistente.setEmail(dadosParaAtualizar.getEmail());
@@ -59,9 +66,13 @@ public class FornecedorService {
         Fornecedor fornecedorExistente = buscarPorId(id);
 
         if (dadosParaAtualizar.getNome() != null) {
+            validarNomeFornecedorUnico(dadosParaAtualizar.getNome(), id);
+
             fornecedorExistente.setNome(dadosParaAtualizar.getNome());
         }
         if (dadosParaAtualizar.getEmail() != null) {
+            validarEmailFornecedorUnico(dadosParaAtualizar.getEmail(), id);
+
             fornecedorExistente.setEmail(dadosParaAtualizar.getEmail());
         }
         if (dadosParaAtualizar.getAtivo() != null) {
@@ -88,5 +99,29 @@ public class FornecedorService {
 
         fornecedor.setAtivo(false);
         fornecedorRepository.save(fornecedor);
+    }
+
+    private void validarEmailFornecedorUnico(String email, Long id) {
+        Optional<Fornecedor> fornecedorExistente;
+        if (id == null) {
+            fornecedorExistente = fornecedorRepository.findByEmail(email);
+        } else {
+            fornecedorExistente = fornecedorRepository.findByEmailAndIdFornecedorNot(email, id);
+        }
+        if (fornecedorExistente.isPresent()) {
+            throw new RuntimeException("O e-mail '" + email + "' já está em uso por outro fornecedor.");
+        }
+    }
+
+    private void validarNomeFornecedorUnico(String nome, Long id) {
+        Optional<Fornecedor> fornecedorExistente;
+        if (id == null) {
+            fornecedorExistente = fornecedorRepository.findByNome(nome);
+        } else {
+            fornecedorExistente = fornecedorRepository.findByNomeAndIdFornecedorNot(nome, id);
+        }
+        if (fornecedorExistente.isPresent()) {
+            throw new RuntimeException("O nome '" + nome + "' já está em uso por outro fornecedor.");
+        }
     }
 }
