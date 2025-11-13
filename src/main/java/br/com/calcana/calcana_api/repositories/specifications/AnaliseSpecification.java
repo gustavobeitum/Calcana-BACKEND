@@ -6,6 +6,7 @@ import br.com.calcana.calcana_api.model.Propriedade;
 import jakarta.persistence.criteria.Join;
 import org.springframework.data.jpa.domain.Specification;
 import java.time.LocalDate;
+import java.util.List;
 
 public class AnaliseSpecification {
 
@@ -24,10 +25,13 @@ public class AnaliseSpecification {
                 criteriaBuilder.like(root.get("talhao"), "%" + talhao + "%");
     }
 
-    public static Specification<Analises> comPropriedadeId(Long propriedadeId) {
+    public static Specification<Analises> comPropriedadeIds(List<Long> propriedadeIds) {
         return (root, query, criteriaBuilder) -> {
+            if (propriedadeIds == null || propriedadeIds.isEmpty()) {
+                return criteriaBuilder.conjunction();
+            }
             Join<Analises, Propriedade> propriedadeJoin = root.join("propriedade");
-            return criteriaBuilder.equal(propriedadeJoin.get("idPropriedade"), propriedadeId);
+            return propriedadeJoin.get("idPropriedade").in(propriedadeIds);
         };
     }
 

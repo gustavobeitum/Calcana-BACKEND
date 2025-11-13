@@ -16,6 +16,8 @@ import br.com.calcana.calcana_api.model.Analises;
 import br.com.calcana.calcana_api.services.AnaliseService;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.format.annotation.DateTimeFormat;
+import br.com.calcana.calcana_api.security.dto.EnviarRelatorioDTO;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import java.time.format.DateTimeFormatter;
@@ -43,6 +45,7 @@ public class ReportController {
     @Autowired
     private EmailService emailService;
 
+    //PDF
     @GetMapping("/analise/{id}/pdf")
     @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public ResponseEntity<InputStreamResource> gerarBoletimPdf(@PathVariable("id") Long idAnalise) {
@@ -69,21 +72,54 @@ public class ReportController {
         }
     }
 
-
-    @GetMapping("/analises/excel")
+    @GetMapping("/analises/pdf")
     @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
-    public ResponseEntity<InputStreamResource> gerarRelatorioExcel(
-            @RequestParam(required = false, defaultValue = "default") String layout,
-
+    public ResponseEntity<InputStreamResource> gerarRelatorioPdfConsolidado(
             @RequestParam(required = false) Long fornecedorId,
-            @RequestParam(required = false) Long propriedadeId,
+            @RequestParam(required = false) List<Long> propriedadeIds,
             @RequestParam(required = false) String talhao,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim
     ) {
         try {
             List<Analises> analises = analiseService.listarTodasFiltradas(
-                    fornecedorId, propriedadeId, talhao, dataInicio, dataFim
+                    fornecedorId, propriedadeIds, talhao, dataInicio, dataFim
+            );
+
+            ByteArrayInputStream pdfStream = reportService.gerarPdfConsolidado(analises);
+
+            HttpHeaders headers = new HttpHeaders();
+            String filename = "relatorio_analises_consolidado.pdf";
+
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=" + filename);
+
+            return ResponseEntity
+                    .ok()
+                    .headers(headers)
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(new InputStreamResource(pdfStream));
+
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+
+    //EXCEL
+    @GetMapping("/analises/excel")
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
+    public ResponseEntity<InputStreamResource> gerarRelatorioExcel(
+            @RequestParam(required = false, defaultValue = "default") String layout,
+
+            @RequestParam(required = false) Long fornecedorId,
+            @RequestParam(required = false) List<Long> propriedadeIds,
+            @RequestParam(required = false) String talhao,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim
+    ) {
+        try {
+            List<Analises> analises = analiseService.listarTodasFiltradas(
+                    fornecedorId, propriedadeIds, talhao, dataInicio, dataFim
             );
 
             ByteArrayInputStream excelStream = reportService.gerarRelatorioExcel(analises, layout);
@@ -107,6 +143,7 @@ public class ReportController {
     }
 
 
+    //ENVIAR EMAIL
     @PostMapping("/analise/{id}/enviar")
     @PreAuthorize("hasRole('OPERADOR')")
     public ResponseEntity<Void> enviarBoletimPorEmail(@PathVariable("id") Long idAnalise) {
@@ -153,6 +190,58 @@ public class ReportController {
             return ResponseEntity.internalServerError().build();
         } catch (RuntimeException e) {
             throw e;
+        }
+    }
+
+    @PostMapping("/analises/enviar-email")
+    @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
+    public ResponseEntity<Void> enviarRelatorioConsolidadoPorEmail(
+            @RequestBody EnviarRelatorioDTO emailDados,
+
+            @RequestParam(required = false) Long fornecedorId,
+            @RequestParam(required = false) List<Long> propriedadeIds,
+            @RequestParam(required = false) String talhao,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim
+    ) {
+        try {
+            if (emailDados.emailDestino() == null || emailDados.emailDestino().isEmpty()) {
+                throw new RuntimeException("O e-mail de destino é obrigatório.");
+            }
+
+            List<Analises> analises = analiseService.listarTodasFiltradas(
+                    fornecedorId, propriedadeIds, talhao, dataInicio, dataFim
+            );
+
+            if (analises.isEmpty()) {
+                throw new RuntimeException("Não há análises para enviar com os filtros selecionados.");
+            }
+
+            ByteArrayInputStream pdfStream = reportService.gerarPdfConsolidado(analises);
+            byte[] pdfBytes = pdfStream.readAllBytes();
+
+            String nomeArquivo = "relatorio_consolidado.pdf";
+
+            String assunto = emailDados.assunto() != null && !emailDados.assunto().isEmpty()
+                    ? emailDados.assunto()
+                    : "Relatório de Análises Consolidado";
+
+            String mensagem = emailDados.mensagem() != null && !emailDados.mensagem().isEmpty()
+                    ? emailDados.mensagem()
+                    : "Segue em anexo o relatório consolidado das análises solicitadas.";
+
+            emailService.enviarEmailComAnexo(
+                    emailDados.emailDestino(),
+                    assunto,
+                    mensagem,
+                    pdfBytes,
+                    nomeArquivo
+            );
+
+            return ResponseEntity.ok().build();
+
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

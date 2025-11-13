@@ -147,15 +147,17 @@ public class AnaliseService {
         return analiseRepository.save(analiseExistente);
     }
 
-    public List<Analises> listarTodasFiltradas(Long fornecedorId, Long propriedadeId, String talhao, LocalDate dataInicio, LocalDate dataFim) {
+    public List<Analises> listarTodasFiltradas(Long fornecedorId, List<Long> propriedadeIds, String talhao, LocalDate dataInicio, LocalDate dataFim) {
         Specification<Analises> spec = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
 
         if (fornecedorId != null) {
             spec = spec.and(AnaliseSpecification.comFornecedorId(fornecedorId));
         }
-        if (propriedadeId != null) {
-            spec = spec.and(AnaliseSpecification.comPropriedadeId(propriedadeId));
+
+        if (propriedadeIds != null && !propriedadeIds.isEmpty()) {
+            spec = spec.and(AnaliseSpecification.comPropriedadeIds(propriedadeIds));
         }
+
         if (talhao != null && !talhao.isEmpty()) {
             spec = spec.and(AnaliseSpecification.comTalhao(talhao));
         }

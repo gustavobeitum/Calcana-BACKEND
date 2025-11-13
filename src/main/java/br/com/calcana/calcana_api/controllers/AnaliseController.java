@@ -22,12 +22,12 @@ public class AnaliseController {
     @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
     public List<Analises> listarTodas(
             @RequestParam(required = false) Long fornecedorId,
-            @RequestParam(required = false) Long propriedadeId,
+            @RequestParam(required = false) List<Long> propriedadeIds,
             @RequestParam(required = false) String talhao,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim
     ) {
-        return analiseService.listarTodasFiltradas(fornecedorId, propriedadeId, talhao, dataInicio, dataFim);
+        return analiseService.listarTodasFiltradas(fornecedorId, propriedadeIds, talhao, dataInicio, dataFim);
     }
 
     @PostMapping

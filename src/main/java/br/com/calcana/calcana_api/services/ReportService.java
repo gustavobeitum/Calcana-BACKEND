@@ -137,7 +137,63 @@ public class ReportService {
         return new ByteArrayInputStream(baos.toByteArray());
     }
 
-private Cell criarCelulaCabecalho(String texto) {
+    public ByteArrayInputStream gerarPdfConsolidado(List<Analises> analises) throws IOException {
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PdfWriter writer = new PdfWriter(baos);
+        PdfDocument pdfDoc = new PdfDocument(writer);
+        Document document = new Document(pdfDoc, PageSize.A4.rotate());
+        document.setMargins(30, 30, 30, 30);
+
+        Paragraph titulo = new Paragraph("Relatório Consolidado de Análises")
+                .setTextAlignment(TextAlignment.CENTER)
+                .setBold()
+                .setFontSize(18)
+                .setMarginBottom(20);
+        document.add(titulo);
+
+        Paragraph subtitulo = new Paragraph("Total de análises no período: " + analises.size())
+                .setTextAlignment(TextAlignment.CENTER)
+                .setFontSize(10)
+                .setMarginBottom(15);
+        document.add(subtitulo);
+
+        float[] colunas = {2f, 3f, 3f, 2f, 1f, 1.5f};
+        Table tabela = new Table(UnitValue.createPercentArray(colunas));
+        tabela.setWidth(UnitValue.createPercentValue(100));
+
+        tabela.addCell(criarCelulaCabecalho("Data"));
+        tabela.addCell(criarCelulaCabecalho("Fornecedor"));
+        tabela.addCell(criarCelulaCabecalho("Propriedade"));
+        tabela.addCell(criarCelulaCabecalho("Talhão"));
+        tabela.addCell(criarCelulaCabecalho("Corte"));
+        tabela.addCell(criarCelulaCabecalho("ATR (kg/t)"));
+
+        if (analises.isEmpty()) {
+            Cell celulaVazia = new Cell(1, 6)
+                    .add(new Paragraph("Nenhuma análise encontrada para os filtros selecionados."))
+                    .setTextAlignment(TextAlignment.CENTER)
+                    .setPadding(10);
+            tabela.addCell(celulaVazia);
+        } else {
+            for (Analises analise : analises) {
+                tabela.addCell(criarCelulaSimples(analise.getDataAnalise().format(DATE_FORMATTER)));
+                tabela.addCell(criarCelulaSimples(analise.getPropriedade().getFornecedor().getNome()));
+                tabela.addCell(criarCelulaSimples(analise.getPropriedade().getNome()));
+                tabela.addCell(criarCelulaSimples(analise.getTalhao()));
+                tabela.addCell(criarCelulaSimples(analise.getCorte().toString() + "º"));
+                tabela.addCell(criarCelulaSimples(analise.getAtr() != null ? analise.getAtr().toString() : "-"));
+            }
+        }
+
+        document.add(tabela);
+
+        document.close();
+
+        return new ByteArrayInputStream(baos.toByteArray());
+    }
+
+    private Cell criarCelulaCabecalho(String texto) {
         return new Cell().add(new Paragraph(texto))
                 .setBold()
                 .setFontSize(9)
@@ -250,4 +306,6 @@ private Cell criarCelulaCabecalho(String texto) {
             cell.setCellValue(valor.toString());
         }
     }
+
+
 }
