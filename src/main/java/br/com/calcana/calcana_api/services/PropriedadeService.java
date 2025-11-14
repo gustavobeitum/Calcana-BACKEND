@@ -5,9 +5,13 @@ import br.com.calcana.calcana_api.model.Propriedade;
 import br.com.calcana.calcana_api.model.Cidade;
 import br.com.calcana.calcana_api.model.Fornecedor;
 import br.com.calcana.calcana_api.repositories.*;
+import br.com.calcana.calcana_api.repositories.specifications.PropriedadeSpecification;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -28,14 +32,26 @@ public class PropriedadeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Propriedade com ID " + id + " não encontrada!"));
     }
 
-    public List<Propriedade> listarTodos(String status) {
+    public Page<Propriedade> listarTodos(String status, String searchTerm, Pageable pageable) {
+
+        Specification<Propriedade> spec = null;
+
         if ("inativos".equalsIgnoreCase(status)) {
-            return propriedadeRepository.findAllByAtivoFalse();
-        } else if ("todos".equalsIgnoreCase(status)) {
-            return propriedadeRepository.findAll();
-        } else {
-            return propriedadeRepository.findAllByAtivoTrue();
+            spec = PropriedadeSpecification.comStatus(false);
+        } else if ("ativos".equalsIgnoreCase(status)) {
+            spec = PropriedadeSpecification.comStatus(true);
         }
+        if (searchTerm != null && !searchTerm.isEmpty()) {
+            Specification<Propriedade> searchTermSpec = PropriedadeSpecification.comTermoDeBusca(searchTerm);
+
+            if (spec == null) {
+                spec = searchTermSpec;
+            } else {
+                spec = spec.and(searchTermSpec);
+            }
+        }
+
+        return propriedadeRepository.findAll(spec, pageable);
     }
 
     public List<Propriedade> buscarPorFornecedor(Long fornecedorId) {

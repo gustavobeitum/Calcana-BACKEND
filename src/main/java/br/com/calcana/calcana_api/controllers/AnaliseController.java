@@ -7,8 +7,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.format.annotation.DateTimeFormat;
-import java.time.LocalDate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -20,14 +24,19 @@ public class AnaliseController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('GESTOR', 'OPERADOR')")
-    public List<Analises> listarTodas(
+    public Page<Analises> listarTodas(
             @RequestParam(required = false) Long fornecedorId,
             @RequestParam(required = false) List<Long> propriedadeIds,
             @RequestParam(required = false) String talhao,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim
+
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
+            @PageableDefault(size = 10, sort = "dataAnalise", direction = Sort.Direction.DESC)
+            Pageable pageable
     ) {
-        return analiseService.listarTodasFiltradas(fornecedorId, propriedadeIds, talhao, dataInicio, dataFim);
+        return analiseService.listarTodasFiltradas(
+                fornecedorId, propriedadeIds, talhao, dataInicio, dataFim, pageable
+        );
     }
 
     @PostMapping

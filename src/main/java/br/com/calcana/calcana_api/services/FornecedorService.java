@@ -8,6 +8,10 @@ import br.com.calcana.calcana_api.repositories.PropriedadeRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import br.com.calcana.calcana_api.repositories.specifications.FornecedorSpecification;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,14 +28,27 @@ public class FornecedorService {
     @Autowired
     private PropriedadeService propriedadeService;
 
-    public List<Fornecedor> listarTodos(String status) {
+    public Page<Fornecedor> listarTodos(String status, String searchTerm, Pageable pageable) {
+
+        Specification<Fornecedor> spec = null;
+
         if ("inativos".equalsIgnoreCase(status)) {
-            return fornecedorRepository.findAllByAtivoFalse();
-        } else if ("todos".equalsIgnoreCase(status)) {
-            return fornecedorRepository.findAll();
-        } else {
-            return fornecedorRepository.findAllByAtivoTrue();
+            spec = FornecedorSpecification.comStatus(false);
+        } else if ("ativos".equalsIgnoreCase(status)) {
+            spec = FornecedorSpecification.comStatus(true);
         }
+
+        if (searchTerm != null && !searchTerm.isEmpty()) {
+            Specification<Fornecedor> searchTermSpec = FornecedorSpecification.comTermoDeBusca(searchTerm);
+
+            if (spec == null) {
+                spec = searchTermSpec;
+            } else {
+                spec = spec.and(searchTermSpec);
+            }
+        }
+
+        return fornecedorRepository.findAll(spec, pageable);
     }
 
     public Fornecedor buscarPorId(Long id) {

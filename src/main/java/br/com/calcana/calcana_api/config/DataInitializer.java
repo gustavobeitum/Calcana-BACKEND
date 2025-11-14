@@ -27,25 +27,31 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
 
         Perfil gestorPerfil = criarPerfilSeNaoExistir("GESTOR");
-
         Perfil operadorPerfil = criarPerfilSeNaoExistir("OPERADOR");
 
-        if (usuarioRepository.findByEmail("admin@calcana.com").isEmpty()) {
+        criarUsuarioSeNaoExistir(
+                "Admin Gestor",
+                "admin@calcana.com",
+                "admin123",
+                gestorPerfil
+        );
 
-            Usuario admin = new Usuario();
-            admin.setNome("Admin Gestor");
-            admin.setEmail("admin@calcana.com");
-            admin.setSenha(passwordEncoder.encode("admin123"));
-            admin.setAtivo(true);
-            admin.setPerfil(gestorPerfil);
+        criarUsuarioSeNaoExistir(
+                "Admin Gestor 2",
+                "admin2@calcana.com",
+                "admin123",
+                gestorPerfil
+        );
 
-            usuarioRepository.save(admin);
-
-            System.out.println(">>> Usuário GESTOR padrão criado com sucesso!");
-        }
+        criarUsuarioSeNaoExistir(
+                "Usuario Operador",
+                "operador@calcana.com",
+                "oper123",
+                operadorPerfil
+        );
     }
 
-    private Perfil criarPerfilSeNaoExistir(String descricao) {
+   private Perfil criarPerfilSeNaoExistir(String descricao) {
         Optional<Perfil> perfilOpt = perfilRepository.findAll().stream()
                 .filter(p -> p.getDescricao().equalsIgnoreCase(descricao))
                 .findFirst();
@@ -56,6 +62,20 @@ public class DataInitializer implements CommandLineRunner {
             Perfil novoPerfil = new Perfil();
             novoPerfil.setDescricao(descricao.toUpperCase());
             return perfilRepository.save(novoPerfil);
+        }
+    }
+
+    private void criarUsuarioSeNaoExistir(String nome, String email, String senha, Perfil perfil) {
+        if (usuarioRepository.findByEmail(email).isEmpty()) {
+            Usuario novoUsuario = new Usuario();
+            novoUsuario.setNome(nome);
+            novoUsuario.setEmail(email);
+            novoUsuario.setSenha(passwordEncoder.encode(senha));
+            novoUsuario.setAtivo(true);
+            novoUsuario.setPerfil(perfil);
+
+            usuarioRepository.save(novoUsuario);
+            System.out.println(">>> Usuário " + perfil.getDescricao() + " (" + email + ") criado com sucesso!");
         }
     }
 }

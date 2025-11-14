@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.domain.Specification;
 import br.com.calcana.calcana_api.repositories.specifications.AnaliseSpecification;
 import java.time.LocalDateTime;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -147,17 +150,40 @@ public class AnaliseService {
         return analiseRepository.save(analiseExistente);
     }
 
-    public List<Analises> listarTodasFiltradas(Long fornecedorId, List<Long> propriedadeIds, String talhao, LocalDate dataInicio, LocalDate dataFim) {
+    public Page<Analises> listarTodasFiltradas(
+            Long fornecedorId, List<Long> propriedadeIds, String talhao,
+            LocalDate dataInicio, LocalDate dataFim, Pageable pageable)
+    {
+        Specification<Analises> spec = buildSpecification(fornecedorId, propriedadeIds, talhao, dataInicio, dataFim);
+        return analiseRepository.findAll(spec, pageable);
+    }
+
+    public List<Analises> listarTodasFiltradasSemPaginacao(
+            Long fornecedorId, List<Long> propriedadeIds, String talhao,
+            LocalDate dataInicio, LocalDate dataFim)
+    {
+        // Usa o mesmo helper
+        Specification<Analises> spec = buildSpecification(fornecedorId, propriedadeIds, talhao, dataInicio, dataFim);
+
+        // Define a ordenação padrão para relatórios (mais recentes primeiro)
+        Sort sort = Sort.by(Sort.Direction.DESC, "dataAnalise");
+
+        // Retorna a Lista completa, ordenada
+        return analiseRepository.findAll(spec, sort);
+    }
+
+    private Specification<Analises> buildSpecification(
+            Long fornecedorId, List<Long> propriedadeIds, String talhao,
+            LocalDate dataInicio, LocalDate dataFim)
+    {
         Specification<Analises> spec = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
 
         if (fornecedorId != null) {
             spec = spec.and(AnaliseSpecification.comFornecedorId(fornecedorId));
         }
-
         if (propriedadeIds != null && !propriedadeIds.isEmpty()) {
             spec = spec.and(AnaliseSpecification.comPropriedadeIds(propriedadeIds));
         }
-
         if (talhao != null && !talhao.isEmpty()) {
             spec = spec.and(AnaliseSpecification.comTalhao(talhao));
         }
@@ -167,8 +193,7 @@ public class AnaliseService {
         if (dataFim != null) {
             spec = spec.and(AnaliseSpecification.comDataFim(dataFim));
         }
-
-        return analiseRepository.findAll(spec);
+        return spec;
     }
 
     @Transactional
