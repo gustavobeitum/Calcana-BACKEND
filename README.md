@@ -72,7 +72,7 @@ src/main/java/br/com/calcana/calcana_api/
 
 **1. Clone o repositório**
 ```bash
-git clone https://github.com/gustavobeitum/Calcana-BACKEND
+git clone https://github.com/gustavobeitum/Calcana-BACKEND.git
 cd calcana-api
 ```
 
