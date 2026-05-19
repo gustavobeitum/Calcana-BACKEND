@@ -168,7 +168,7 @@ O sistema gera relatórios em **PDF** (iText 7) e **Excel** (Apache POI) e os en
 ## 🔗 Repositório do Frontend
 
 A interface web que consome esta API está disponível em:
-👉 [calcana-frontend](https://github.com/seu-usuario/calcana-frontend)
+👉 [calcana-frontend](https://github.com/gustavobeitum/Calcana-FRONTEND)
 
 ---
 
