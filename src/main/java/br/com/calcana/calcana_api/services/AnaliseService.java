@@ -162,13 +162,10 @@ public class AnaliseService {
             Long fornecedorId, List<Long> propriedadeIds, String talhao,
             LocalDate dataInicio, LocalDate dataFim)
     {
-        // Usa o mesmo helper
         Specification<Analises> spec = buildSpecification(fornecedorId, propriedadeIds, talhao, dataInicio, dataFim);
 
-        // Define a ordenação padrão para relatórios (mais recentes primeiro)
         Sort sort = Sort.by(Sort.Direction.DESC, "dataAnalise");
 
-        // Retorna a Lista completa, ordenada
         return analiseRepository.findAll(spec, sort);
     }
 
@@ -200,7 +197,7 @@ public class AnaliseService {
     public void deletar(Long id) {
         Analises analiseParaDeletar = buscarPorId(id);
 
-        // Poderíamos verificar aqui se a análise já foi enviada por e-mail e impedir a exclusão, por exemplo.
+        // Verificar se a análise já foi enviada por e-mail e impedir a exclusão
         // if (analiseParaDeletar.getStatusEnvioEmail()) {
         //    throw new RuntimeException("Não é possível excluir uma análise que já foi enviada.");
         // }
@@ -237,7 +234,7 @@ public class AnaliseService {
 
         BigDecimal s_polCaldo = parte1.multiply(parte2);
 
-        // Salvar S (Pol do Caldo) - Precisão 2
+        // Salvar S (Pol do Caldo) - 2 casas
         analise.setPolCaldo(s_polCaldo.setScale(2, arredondamento));
 
 
@@ -245,7 +242,7 @@ public class AnaliseService {
         BigDecimal q_pureza = (new BigDecimal("100")).multiply(s_polCaldo)
                 .divide(brix, precisaoIntermediaria, arredondamento);
 
-        // Salvar Q (Pureza) - Precisão 2
+        // Salvar Q (Pureza) - 2 casas
         analise.setPureza(q_pureza.setScale(2, arredondamento));
 
 
@@ -253,7 +250,7 @@ public class AnaliseService {
         BigDecimal ar_acucaresRedutoresCaldo = (new BigDecimal("3.641"))
                 .subtract((new BigDecimal("0.0343")).multiply(q_pureza));
 
-        // Salvar AR (Ar Caldo) - Precisão 2
+        // Salvar AR (Ar Caldo) - 2 casas
         analise.setArCaldo(ar_acucaresRedutoresCaldo.setScale(2, arredondamento));
 
 
@@ -261,7 +258,7 @@ public class AnaliseService {
         BigDecimal f_fibra = (new BigDecimal("0.08")).multiply(pbu)
                 .add(new BigDecimal("0.876"));
 
-        // Salvar F (Fibra) - Precisão 2
+        // Salvar F (Fibra) - 2 casas
         analise.setFibra(f_fibra.setScale(2, arredondamento));
 
 
@@ -269,7 +266,7 @@ public class AnaliseService {
         BigDecimal c_coeficiente = (new BigDecimal("1.0313"))
                 .subtract((new BigDecimal("0.00575")).multiply(f_fibra));
 
-        // Precisão 4
+        // 4 casas
         c_coeficiente = c_coeficiente.setScale(4, arredondamento);
 
 
@@ -278,7 +275,7 @@ public class AnaliseService {
                 (BigDecimal.ONE.subtract((new BigDecimal("0.01")).multiply(f_fibra)))
         ).multiply(c_coeficiente);
 
-        // Salvar PC (Pol da Cana) - Precisão 2
+        // Salvar PC (Pol da Cana) - 2 casas
         analise.setPolCana(pc_polCana.setScale(2, arredondamento));
 
 
@@ -287,7 +284,7 @@ public class AnaliseService {
                 (BigDecimal.ONE.subtract((new BigDecimal("0.01")).multiply(f_fibra)))
         ).multiply(c_coeficiente);
 
-        // Salvar ARC (AR da Cana) - Precisão 2
+        // Salvar ARC (AR da Cana) - 2 casas
         analise.setArCana(arc_arCana.setScale(2, arredondamento));
 
 
@@ -295,12 +292,11 @@ public class AnaliseService {
         BigDecimal atr_final = (new BigDecimal("9.6316")).multiply(pc_polCana)
                 .add((new BigDecimal("9.15")).multiply(arc_arCana));
 
-        // Salvar ATR - Precisão 2
+        // Salvar ATR - 2 casas
         analise.setAtr(atr_final.setScale(2, arredondamento));
 
 
-        //Leitura Sacarimétrica Corrigida a fórmula para este campo não foi encontrada.
-        // Estamos a definir como null para evitar salvar o dado placeholder.
+        //Leitura Sacarimétrica Corrigida ainda não obtive a fórmula e este campo foi defino como null para evitar salvar o dado placeholder.
         analise.setLeituraSacarimetricaCorrigida(null);
     }
 

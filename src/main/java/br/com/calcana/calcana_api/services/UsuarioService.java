@@ -55,7 +55,7 @@ public class UsuarioService {
                 return usuarioRepository.findByPerfilDescricaoAndAtivoFalse(perfilUpper);
             } else if ("todos".equalsIgnoreCase(status)) {
                 return usuarioRepository.findByPerfilDescricao(perfilUpper);
-            } else { // "ativos" ou default
+            } else {
                 return usuarioRepository.findByPerfilDescricaoAndAtivoTrue(perfilUpper);
             }
         } else {
